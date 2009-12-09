@@ -120,13 +120,12 @@ void AddFlag(const string& flag_name,
 }
 
 void ShowHelp() {
-  std::cout << std::endl;
   std::cout << "Command line flag options: " << std::endl;
   for (map<string,string>::iterator iter = CMD_LINE_DESCRIPTIONS.begin();
        iter != CMD_LINE_DESCRIPTIONS.end();
        iter++) {
     std::cerr << "   " << iter->first << std::endl;
-    std::cerr << "        " << iter->second << std::endl << std::endl;
+    std::cerr << "        " << iter->second << std::endl;
   }
   std::cout << std::endl;
   exit(0);

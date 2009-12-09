@@ -43,29 +43,25 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--model_in", "Read in a model from this file.", string(""));
   AddFlag("--model_out", "Write the model to this file.", string(""));
   AddFlag("--random_seed",
-	  "When set to non-zero value, use this seed instead of seed from system clock",
+	  "When set to non-zero value, use this seed instead of seed from system clock.  Default: 0",
 	  int(0));
   AddFlag("--lambda", 
-	  "Value of lambda for svm regularization, default 1.",
-	  float(1.0));
+	  "Value of lambda for svm regularization.  Default: 0.1",
+	  float(0.1));
   AddFlag("--iterations",
-	  "Number of stochastic gradient steps to take, defalut 10000.",
-	  int(10000));
+	  "Number of stochastic gradient steps to take.  Default: 100000",
+	  int(100000));
   AddFlag("--learner_type",
 	  "Type of learner to use.  Options are pegasos, passive-aggressive, margin-perceptron, "
-	  "romma, sgd-svm and logreg-pegasos.",
+	  "romma, sgd-svm and logreg-pegasos.  Default: pegasos",
 	  string("pegasos"));
   AddFlag("--eta_type",
-	  "Type of update for learning rate to use.  Options are: basic, pegasos.",
+	  "Type of update for learning rate to use.  Options are: basic, pegasos.  Default: pegasos",
 	  string("pegasos"));
   AddFlag("--loop_type",
 	  "Type of loop to use for training.  Options are: stochastic, balanced-stochastic, "
-	  "roc, rank, query-norm-rank.",
+	  "roc, rank, query-norm-rank.  Default: stochastic",
 	  string("stochastic"));
-  AddFlag("--pegasos_k",
-	  "Size of k (minibatch size) to use with pegasos training.  Default 1.  "
-	  "When set to 0, k is set to size of training data set.",
-	  int(1));
   AddFlag("--passive_aggressive_c",
 	  "Maximum size of any step taken in a single passive-aggressive update.",
 	  float(10000000.0));
@@ -74,19 +70,18 @@ void CommandLine(int argc, char** argv) {
 	  "set to 0 (default) no projection is performed.",
 	  float(0));
   AddFlag("--perceptron_margin_size",
-	  "Width of margin for perceptron with margins.  Default of 1 is SVM-loss.",
+	  "Width of margin for perceptron with margins.  Default of 1 is equivalent to un-regularized SVM-loss.",
 	  float(1.0));
   AddFlag("--training_objective",
 	  "Compute value of objective function on training data, after training. "
 	  "Default is not to do this.",
 	  bool(false));
   AddFlag("--buffer_mb",
-	  "Size of buffer to use in reading/writing to files, in MB.  Default 40.",
+	  "Size of buffer to use in reading/writing to files, in MB.",
 	  int(40));
   AddFlag("--dimensionality",
-	  "Index value of largest feature index in training data set.  "
-	  "Default 100000.",
-	  int(100000));
+	  "Index value of largest feature index in training data set.  Default: 2^17 = 131072",
+	  int(2<<16));
   AddFlag("--hash_mask_bits",
 	  "When set to a non-zero value, causes the use of a hash weight vector with "
 	  "hash cross product features.  The size of the hash is set to 2^--hash_mask_bits. "
