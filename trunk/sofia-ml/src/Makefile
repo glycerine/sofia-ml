@@ -23,6 +23,7 @@ GCC= g++ -O3 -lm
 # Primary executable binary.
 sofia-ml:
 	$(GCC) -o sofia-ml sofia-ml.cc sofia-ml-methods.cc sf-weight-vector.cc sf-sparse-vector.cc sf-data-set.cc sf-hash-weight-vector.cc sf-hash-inline.cc
+	cp sofia-ml ..
 
 # Build and execute all unit tests.
 all_test: sf-sparse-vector_test sf-data-set_test sf-hash-inline_test sf-weight-vector_test simple-cmd-line-helper_test sofia-ml-methods_test
@@ -30,6 +31,7 @@ all_test: sf-sparse-vector_test sf-data-set_test sf-hash-inline_test sf-weight-v
 # Remove all executable binaries (including tests).
 clean:
 	rm -f sofia-ml
+	rm -f ../sofia-ml
 	rm -f sf-sparse-vector_test
 	rm -f sf-data-set_test
 	rm -f sf-hash-inline_test
