@@ -52,40 +52,48 @@ void CommandLine(int argc, char** argv) {
 	  "Number of stochastic gradient steps to take.  Default: 100000",
 	  int(100000));
   AddFlag("--learner_type",
-	  "Type of learner to use.  Options are pegasos, passive-aggressive, margin-perceptron, "
-	  "romma, sgd-svm and logreg-pegasos.  Default: pegasos",
+	  "Type of learner to use.\n"
+	  "    Options are: pegasos, passive-aggressive, margin-perceptron, "
+	  "romma, sgd-svm and logreg-pegasos.\n"
+	  "    Default: pegasos",
 	  string("pegasos"));
   AddFlag("--eta_type",
-	  "Type of update for learning rate to use.  Options are: basic, pegasos.  Default: pegasos",
+	  "Type of update for learning rate to use.\n"
+	  "    Options are: basic, pegasos, constant (0.02).\n"
+	  "    Default: pegasos",
 	  string("pegasos"));
   AddFlag("--loop_type",
-	  "Type of loop to use for training.  Options are: stochastic, balanced-stochastic, "
-	  "roc, rank, query-norm-rank.  Default: stochastic",
+	  "Type of loop to use for training, controlling how examples are selected.\n"
+	  "    Options are: stochastic, balanced-stochastic, "
+	  "roc, rank, query-norm-rank.\n"
+	  "    Default: stochastic",
 	  string("stochastic"));
   AddFlag("--passive_aggressive_c",
 	  "Maximum size of any step taken in a single passive-aggressive update.",
 	  float(10000000.0));
   AddFlag("--passive_aggressive_lambda",
-	  "Lambda for pegasos-style projection for passive-aggressive update.  When "
-	  "set to 0 (default) no projection is performed.",
+	  "Lambda for pegasos-style projection for passive-aggressive update.\n"
+	  "    When set to 0 (default) no projection is performed.",
 	  float(0));
   AddFlag("--perceptron_margin_size",
-	  "Width of margin for perceptron with margins.  Default of 1 is equivalent to un-regularized SVM-loss.",
+	  "Width of margin for perceptron with margins.\n"
+	  "    Default of 1 is equivalent to un-regularized SVM-loss.",
 	  float(1.0));
   AddFlag("--training_objective",
-	  "Compute value of objective function on training data, after training. "
-	  "Default is not to do this.",
+	  "Compute value of objective function on training data, after training.\n"
+	  "    Default is not to do this.",
 	  bool(false));
   AddFlag("--buffer_mb",
-	  "Size of buffer to use in reading/writing to files, in MB.",
+	  "Size of buffer to use in reading/writing to files, in MB.  Default: 40",
 	  int(40));
   AddFlag("--dimensionality",
 	  "Index value of largest feature index in training data set.  Default: 2^17 = 131072",
 	  int(2<<16));
   AddFlag("--hash_mask_bits",
-	  "When set to a non-zero value, causes the use of a hash weight vector with "
-	  "hash cross product features.  The size of the hash is set to 2^--hash_mask_bits. "
-	  "Default value of 0 shows that hash cross products are not used.",
+	  "When set to a non-zero value, causes the use of a hashed weight vector with "
+	  "hashed cross product features.\n"
+	  "    The size of the hash table is set to 2^--hash_mask_bits.\n"
+	  "    Default value of 0 shows that hash cross products are not used.",
 	  int(0));
   ParseFlags(argc, argv);
 }
@@ -143,6 +151,8 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
     eta_type = sofia_ml::BASIC_ETA;
   else if (CMD_LINE_STRINGS["--eta_type"] == "pegasos")
     eta_type = sofia_ml::PEGASOS_ETA;
+  else if (CMD_LINE_STRINGS["--eta_type"] == "constant")
+    eta_type = sofia_ml::CONSTANT;
   else {
     std::cerr << "--eta type " << CMD_LINE_STRINGS["--eta_type"] << " not supported.";
     exit(0);

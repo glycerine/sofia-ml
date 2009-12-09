@@ -39,6 +39,7 @@
 /*
 #include "simple-cmd-line-helper.h"
 
+#include <cstdlib>
 #include <iostream>
 
 int main (int argc, char** argv) {
@@ -124,8 +125,8 @@ void ShowHelp() {
   for (map<string,string>::iterator iter = CMD_LINE_DESCRIPTIONS.begin();
        iter != CMD_LINE_DESCRIPTIONS.end();
        iter++) {
-    std::cerr << "   " << iter->first << std::endl;
-    std::cerr << "        " << iter->second << std::endl;
+    fprintf(stderr, "      %-20s", iter->first.c_str());
+    fprintf(stderr, "  %s\n\n", iter->second.c_str());
   }
   std::cout << std::endl;
   exit(0);
