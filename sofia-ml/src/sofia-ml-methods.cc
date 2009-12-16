@@ -23,10 +23,10 @@
 
 #include "sofia-ml-methods.h"
 
+#include <climits>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <vector>
 
