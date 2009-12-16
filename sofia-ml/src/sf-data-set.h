@@ -34,11 +34,12 @@
 
 class SfDataSet {
  public:
-  SfDataSet() { }
+  // Empty data set.
+  SfDataSet(bool use_bias_term);
 
   // Construct and fill a SfDataSet with data from the given file.
   // Use buffer_mb megabytes for the buffer.
-  SfDataSet(const string& file_name, int buffer_mb);
+  SfDataSet(const string& file_name, int buffer_mb, bool use_bias_term);
 
   // Debug string.
   string AsString() const;
@@ -57,6 +58,8 @@ class SfDataSet {
  private:
   // Member containing all vectors in data set.
   vector<SfSparseVector> vectors_;
+  // Should we add a bias term to each new vector in the data set?
+  bool use_bias_term_;
 };
 
 #endif  // SF_DATA_SET_H__

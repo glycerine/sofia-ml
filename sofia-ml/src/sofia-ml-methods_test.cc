@@ -46,7 +46,7 @@ int main (int argc, char** argv) {
   assert(rank_2.ValueOf(0) < 2.84 + 0.01);
   assert(rank_2.ValueOf(0) > 2.84 - 0.01);
 
-  SfDataSet data_set_2;
+  SfDataSet data_set_2(false);
   data_set_2.AddVector("1 1:1.0 2:1.0");
   data_set_2.AddVector("-1 1:-1.0 2:-1.0");
   data_set_2.AddVector("1 1:0.5 2:-1.0");
