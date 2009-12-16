@@ -32,7 +32,14 @@
 //------------------ SfDataSet Public Methods --------------------//
 //----------------------------------------------------------------//
 
-SfDataSet::SfDataSet(const string& file_name, int buffer_mb) {
+SfDataSet::SfDataSet(bool use_bias_term)
+  : use_bias_term_(use_bias_term) {
+}
+
+SfDataSet::SfDataSet(const string& file_name,
+		     int buffer_mb,
+		     bool use_bias_term)
+  : use_bias_term_(use_bias_term) {
   long int buffer_size = buffer_mb * 1024 * 1024;
   char* local_buffer = new char[buffer_size];
   std::ifstream file_stream(file_name.c_str(), std::ifstream::in);
@@ -59,14 +66,17 @@ string SfDataSet::AsString() const {
 }
 
 const SfSparseVector& SfDataSet::VectorAt(long int index) const {
-  assert (index >= 0 && static_cast<unsigned long int>(index) < vectors_.size());
+  assert (index >= 0 &&
+	  static_cast<unsigned long int>(index) < vectors_.size());
   return vectors_[index];
 }
 
 void SfDataSet::AddVector(const string& vector_string) {
-  vectors_.push_back(SfSparseVector(vector_string.c_str()));
+  vectors_.push_back(SfSparseVector(vector_string.c_str(),
+				    use_bias_term_));
 }
 
 void SfDataSet::AddVector(const char* vector_string) {
-  vectors_.push_back(SfSparseVector(vector_string));
+  vectors_.push_back(SfSparseVector(vector_string,
+				    use_bias_term_));
 }

@@ -43,13 +43,19 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--model_in", "Read in a model from this file.", string(""));
   AddFlag("--model_out", "Write the model to this file.", string(""));
   AddFlag("--random_seed",
-	  "When set to non-zero value, use this seed instead of seed from system clock.  Default: 0",
+	  "When set to non-zero value, use this seed instead of seed from system clock.\n"
+	  "    This can be useful for parameter tuning in cross-validation, as setting \n"
+	  "    a seed by hand forces examples to be sampled in the same order.  However\n"
+	  "    for actual training/test, this should never be used.\n"
+	  "    Default: 0",
 	  int(0));
   AddFlag("--lambda", 
-	  "Value of lambda for svm regularization.  Default: 0.1",
+	  "Value of lambda for svm regularization.\n"
+	  "    Default: 0.1",
 	  float(0.1));
   AddFlag("--iterations",
-	  "Number of stochastic gradient steps to take.  Default: 100000",
+	  "Number of stochastic gradient steps to take.\n"
+	  "    Default: 100000",
 	  int(100000));
   AddFlag("--learner_type",
 	  "Type of learner to use.\n"
@@ -84,17 +90,28 @@ void CommandLine(int argc, char** argv) {
 	  "    Default is not to do this.",
 	  bool(false));
   AddFlag("--buffer_mb",
-	  "Size of buffer to use in reading/writing to files, in MB.  Default: 40",
+	  "Size of buffer to use in reading/writing to files, in MB.\n"
+	  "    Default: 40",
 	  int(40));
   AddFlag("--dimensionality",
-	  "Index value of largest feature index in training data set.  Default: 2^17 = 131072",
+	  "Index value of largest feature index in training data set. \n"
+	  "    Default: 2^17 = 131072",
 	  int(2<<16));
   AddFlag("--hash_mask_bits",
-	  "When set to a non-zero value, causes the use of a hashed weight vector with "
-	  "hashed cross product features.\n"
-	  "    The size of the hash table is set to 2^--hash_mask_bits.\n"
+	  "When set to a non-zero value, causes the use of a hashed weight vector\n"
+	  "    with hashed cross product features.  The size of the hash table is set\n"
+	  "    to 2^--hash_mask_bits.  The same value of this flag must be used for\n"
+	  "    testing and training.\n"
 	  "    Default value of 0 shows that hash cross products are not used.",
 	  int(0));
+  AddFlag("--no_bias_term",
+	  "When set, causes a bias term x_0 to be set to 0 for every \n"
+	  "    feature vector loaded from files, rather than the default of x_0 = 1.\n"
+	  "    This is equivalent to forcing a decision threshold of exactly 0 to be used.\n"
+	  "    Same setting of this flag should be used for training and testing. Note that\n"
+	  "    this flag as no effect for rank and roc optimzation.\n"
+	  "    Default: not set.",
+	  bool(false));
   ParseFlags(argc, argv);
 }
 
@@ -258,7 +275,8 @@ int main (int argc, char** argv) {
 	      << CMD_LINE_STRINGS["--training_file"] << std::endl;
     clock_t read_data_start = clock();
     SfDataSet training_data(CMD_LINE_STRINGS["--training_file"],
-			    CMD_LINE_INTS["--buffer_mb"]);
+			    CMD_LINE_INTS["--buffer_mb"],
+			    !CMD_LINE_BOOLS["--no_bias_term"]);
     PrintElapsedTime(read_data_start, "Time to read training data: ");
 
     TrainModel(training_data, w);
@@ -288,7 +306,8 @@ int main (int argc, char** argv) {
 	      << CMD_LINE_STRINGS["--test_file"] << std::endl;
     clock_t read_data_start = clock();
     SfDataSet test_data(CMD_LINE_STRINGS["--test_file"],
-			 CMD_LINE_INTS["--buffer_mb"]);
+			CMD_LINE_INTS["--buffer_mb"],
+			!CMD_LINE_BOOLS["--no_bias_term"]);
     PrintElapsedTime(read_data_start, "Time to read test data: ");
     
     vector<float> predictions;

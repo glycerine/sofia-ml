@@ -21,7 +21,7 @@
 //
 // A sparse vector for use with sofia-ml.  Vector elements are contained
 // in an stl vector, stored in a struct containing (feature id, feature value)
-// pairs.  Feature id's are assumed to be unique, sorted, and all positive.
+// pairs.  Feature id's are assumed to be unique, sorted, and strictly positive.
 // Sparse vector is assumed to be in svm-light format, with the distinction
 // that the class label may be a float rather than an integer, and
 // that there is an optional group id value.
@@ -37,6 +37,7 @@
 // as the comment.
 //
 // Note that features must be sorted in ascending order, by feature id.
+// Also, feature id 0 is reserved for the bias term.
 
 #ifndef SF_SPARSE_VECTOR_H__
 #define SF_SPARSE_VECTOR_H__
@@ -61,7 +62,12 @@ class SfSparseVector {
  public:
   // Construct a new vector from a string.  Input format is svm-light format:
   // <label> <feature>:<value> ... <feature:value> # comment<\n>
+  // No bias term is used.
   SfSparseVector(const char* in_string);
+
+  // Constructs a new vector from a string, as above, but also sets the bias
+  // term to 1 iff use_bias_term is set to true.
+  SfSparseVector(const char* in_string, bool use_bias_term);
 
   // Construct a new vector that is the difference of two vectors, (a - b).
   // This is useful for ranking problems, etc.
@@ -92,6 +98,10 @@ class SfSparseVector {
 
  private:
   void AddToSquaredNorm(float addend) { squared_norm_ += addend; }
+
+  // Common initialization method shared by constructors, adding vector data
+  // by parsing a string in SVM-light format.
+  void Init(const char* in_string);
 
   // Sets up the bias term, indexed by feature id 0.
   void SetBias() { PushPair(0, 1); }
