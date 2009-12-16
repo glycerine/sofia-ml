@@ -66,4 +66,4 @@ class SfHashWeightVector : public SfWeightVector {
   int hash_mask_;
 };
 
-#endif SF_HASH_WEIGHT_VECTOR_H__
+#endif  // SF_HASH_WEIGHT_VECTOR_H__
