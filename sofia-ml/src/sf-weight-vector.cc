@@ -201,7 +201,7 @@ void SfWeightVector::ProjectToL1Ball(float lambda) {
     float pivot_k = fabsf(weights_[k]);
     float partial_sum_delta = fabsf(weights_[k]);
     // Partition U using pivot_k.
-    for (int i = 0; i < U.size(); ++i) {
+    for (unsigned int i = 0; i < U.size(); ++i) {
       float w_k = fabsf(weights_[U[i]]);
       if (w_k >= pivot_k && U[i] != k) {
 	partial_sum_delta += w_k;
