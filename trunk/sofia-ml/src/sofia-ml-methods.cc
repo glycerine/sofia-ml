@@ -69,6 +69,8 @@ namespace sofia_ml {
       std::cerr << "EtaType " << eta_type << " not supported." << std::endl;
       exit(0);
     }
+    std::cerr << "Error in GetEta, we should never get here." << std::endl;
+    return 0;
   }
   
   // --------------------------------------------------- //
@@ -149,6 +151,7 @@ namespace sofia_ml {
 	training_set.VectorAt(positives[RandInt(positives.size())]);
       const SfSparseVector& neg_x =
 	training_set.VectorAt(negatives[RandInt(negatives.size())]);
+      OneLearnerRankStep(learner_type, pos_x, neg_x, eta, c, lambda, w);
     }
   }
 
@@ -176,7 +179,7 @@ namespace sofia_ml {
       int range =
 	group_id_y_to_count[group_id] - group_id_y_to_index[group_id][a_y].size();
       if (range == 0) continue;
-      int random_int = RandInt(range);
+      unsigned int random_int = RandInt(range);
       for (std::map<float, vector<int> >::const_iterator iter = y_to_list.begin();
 	   iter != y_to_list.end();
 	   iter++) {

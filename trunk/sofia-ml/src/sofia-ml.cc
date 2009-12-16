@@ -306,7 +306,7 @@ int main (int argc, char** argv) {
     }
     std::cerr << "Writing test results to: "
 	      << CMD_LINE_STRINGS["--results_file"] << std::endl;
-    for (int i = 0; i < predictions.size(); ++i) {
+    for (unsigned int i = 0; i < predictions.size(); ++i) {
       prediction_stream << predictions[i] << "\t" 
 			<< test_data.VectorAt(i).GetY() << std::endl;
     }

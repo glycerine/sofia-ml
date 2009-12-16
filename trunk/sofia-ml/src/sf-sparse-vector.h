@@ -71,9 +71,9 @@ class SfSparseVector {
   string AsString() const;
 
   // Methods for interacting with features
-  int NumFeatures() const { return features_.size(); }
-  int FeatureAt(int i) const { return features_[i].id_; }
-  float ValueAt(int i) const { return features_[i].value_; }
+  inline int NumFeatures() const { return features_.size(); }
+  inline int FeatureAt(int i) const { return features_[i].id_; }
+  inline float ValueAt(int i) const { return features_[i].value_; }
 
   // Getters and setters.
   void SetY(float new_y) { y_ = new_y; }

@@ -54,7 +54,7 @@ unsigned int SfHash(int key_1, int key_2, int mask) {
 // at least one entry.
 unsigned int SfHash(const vector<int>& keys, int mask) {
   unsigned int hash = 0;
-  for (int i = 0; i < keys.size(); ++i) {
+  for (unsigned int i = 0; i < keys.size(); ++i) {
     hash += keys[i];
     hash += (hash << 10);
     hash ^= (hash >> 6);

@@ -52,14 +52,14 @@ SfDataSet::SfDataSet(const string& file_name, int buffer_mb) {
 
 string SfDataSet::AsString() const {
   string out_string;
-  for (long int i = 0; i < vectors_.size(); ++i) {
+  for (unsigned long int i = 0; i < vectors_.size(); ++i) {
     out_string += VectorAt(i).AsString() + "\n";
   }
   return out_string;
 }
 
 const SfSparseVector& SfDataSet::VectorAt(long int index) const {
-  assert (index >= 0 && index < vectors_.size());
+  assert (index >= 0 && static_cast<unsigned long int>(index) < vectors_.size());
   return vectors_[index];
 }
 
