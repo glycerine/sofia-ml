@@ -1,18 +1,18 @@
-//================================================================================//
-// Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
-// Licensed under the Apache License, Version 2.0 (the "License");                //
-// you may not use this file except in compliance with the License.               //
-// You may obtain a copy of the License at                                        //
-//                                                                                //
-//      http://www.apache.org/licenses/LICENSE-2.0                                //
-//                                                                                //
-// Unless required by applicable law or agreed to in writing, software            //
-// distributed under the License is distributed on an "AS IS" BASIS,              //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.       //
-// See the License for the specific language governing permissions and            //
-// limitations under the License.                                                 //
-//================================================================================//
+//==========================================================================//
+// Copyright 2009 Google Inc.                                               //
+//                                                                          // 
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//      http://www.apache.org/licenses/LICENSE-2.0                          //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+//==========================================================================//
 //
 // sf-weight-vector.cc
 //
@@ -79,6 +79,23 @@ SfWeightVector::SfWeightVector(const string& weight_vector_string)
   for (int i = 0; i < dimensions_; ++i) {
     weight_stream >> weights_[i];
     squared_norm_ += weights_[i] * weights_[i];
+  }
+}
+
+SfWeightVector::SfWeightVector(const SfWeightVector& weight_vector) {
+  scale_ = weight_vector.scale_;
+  squared_norm_ = weight_vector.squared_norm_;
+  dimensions_ = weight_vector.dimensions_;
+
+  weights_ = new float[dimensions_];
+  if (weights_ == NULL) {
+    std::cerr << "Not enough memory for weight vector of dimension: " 
+	      <<  dimensions_ << std::endl;
+    exit(1);
+  }
+
+  for (int i = 0; i < dimensions_; ++i) {
+    weights_[i] = weight_vector.weights_[i];
   }
 }
 
@@ -159,7 +176,7 @@ void SfWeightVector::ScaleBy(double scaling_factor) {
   }
 }
 
-float SfWeightVector::ValueOf(int index) {
+float SfWeightVector::ValueOf(int index) const {
   if (index < 0) {
     std::cerr << "Illegal index " << index << " in ValueOf. " << std::endl;
     exit(1);

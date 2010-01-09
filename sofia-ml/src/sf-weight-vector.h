@@ -47,6 +47,9 @@ class SfWeightVector {
   // to that produced by the AsString() member method.
   SfWeightVector(const string& weight_vector_string);
 
+  // Simple copy constructor, needed to allocate a new array of weights.
+  SfWeightVector(const SfWeightVector& weight_vector);
+
   // Frees the array of weights.
   virtual ~SfWeightVector();
 
@@ -70,7 +73,7 @@ class SfWeightVector {
   void ScaleBy(double scaling_factor);
 
   // Returns value of element w_index, taking internal scaling into account.
-  float ValueOf(int index);
+  float ValueOf(int index) const;
 
   // Project this vector into the L1 ball of radius lambda.
   void ProjectToL1Ball(float lambda);
