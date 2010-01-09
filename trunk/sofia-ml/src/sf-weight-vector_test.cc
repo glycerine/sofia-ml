@@ -69,6 +69,17 @@ int main (int argc, char** argv) {
   assert(w_4.GetSquaredNorm() == 5.0);
 
   SfWeightVector w_6("0 1 2 3 -4 -5");
+
+  SfWeightVector w_7(w_6);
+  assert(w_7.ValueOf(0) == 0);
+  assert(w_7.ValueOf(1) == 1);
+  assert(w_7.ValueOf(2) == 2);
+  assert(w_7.ValueOf(3) == 3);
+  assert(w_7.ValueOf(4) == -4);
+  assert(w_7.ValueOf(5) == -5);
+  assert(w_7.GetSquaredNorm() == w_6.GetSquaredNorm());
+  assert(w_7.GetDimensions() == w_6.GetDimensions());
+  
   w_6.ProjectToL1Ball(20);
   assert(w_6.ValueOf(0) == 0);
   assert(w_6.ValueOf(1) == 1);

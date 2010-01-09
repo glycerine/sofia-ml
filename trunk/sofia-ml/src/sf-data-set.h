@@ -54,6 +54,8 @@ class SfDataSet {
   // to the data set.
   void AddVector(const string& vector_string);
   void AddVector(const char* vector_string);
+  // Adds a copy of the given vector, using label y.
+  void AddLabeledVector(const SfSparseVector& x, float y);
 
  private:
   // Member containing all vectors in data set.

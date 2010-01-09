@@ -80,3 +80,8 @@ void SfDataSet::AddVector(const char* vector_string) {
   vectors_.push_back(SfSparseVector(vector_string,
 				    use_bias_term_));
 }
+
+void SfDataSet::AddLabeledVector(const SfSparseVector& x, float y) {
+  vectors_.push_back(x);
+  vectors_[vectors_.size() - 1].SetY(y);
+}
