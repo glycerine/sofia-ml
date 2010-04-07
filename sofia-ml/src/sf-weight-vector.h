@@ -77,6 +77,10 @@ class SfWeightVector {
 
   // Project this vector into the L1 ball of radius lambda.
   void ProjectToL1Ball(float lambda);
+
+  // Project this vector into the L1 ball of radius at most lambda, plus or
+  // minus epsilon / 2.
+  void ProjectToL1Ball(float lambda, float epsilon);
   
   // Getters.
   double GetSquaredNorm() const { return squared_norm_; }

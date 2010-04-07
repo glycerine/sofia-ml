@@ -187,47 +187,97 @@ float SfWeightVector::ValueOf(int index) const {
   return weights_[index] * scale_;
 }
 
+void SfWeightVector::ProjectToL1Ball(float lambda, float epsilon) {
+  // Re-scale lambda.
+  lambda = lambda / scale_;
+
+  // Bail out early if possible.
+  float current_l1 = 0.0;
+  float max_value = 0.0;
+  vector<float> non_zeros;
+  for (int i = 0; i < dimensions_; ++i) {
+    if (weights_[i] != 0.0) {
+      non_zeros.push_back(fabsf(weights_[i]));
+    } else {
+      continue;
+    }
+    current_l1 += fabsf(weights_[i]);
+    if (fabs(weights_[i]) > max_value) {
+      max_value = fabs(weights_[i]);
+    }
+  }
+  if (current_l1 <= (1.0 + epsilon) * lambda) return;
+
+  float min = 0;
+  float max = max_value;
+  float theta = 0.0;
+  while (current_l1 >  (1.0 + epsilon) * lambda ||
+	 current_l1 < lambda) {
+    theta = (max + min) / 2.0;
+    current_l1 = 0.0;
+    for (unsigned int i = 0; i < non_zeros.size(); ++i) {
+      current_l1 += fmax(0, non_zeros[i] - theta);
+    }
+    if (current_l1 <= lambda) {
+      max = theta;
+    } else {
+      min = theta;
+    }
+  }
+
+  for (int i = 0; i < dimensions_; ++i) {
+    if (weights_[i] > 0) weights_[i] = fmax(0, weights_[i] - theta);
+    if (weights_[i] < 0) weights_[i] = fmin(0, weights_[i] + theta);
+  } 
+}
+
+
 void SfWeightVector::ProjectToL1Ball(float lambda) {
-  double partial_pivot = 0;
-  double partial_sum = 0;
+  // Bail out early if possible.
+  float current_l1 = 0.0;
+  for (int i = 0; i < dimensions_; ++i) {
+    if (fabsf(ValueOf(i)) > 0) current_l1 += fabsf(ValueOf(i));
+  }
+  if (current_l1 < lambda) return;
 
   vector<int> workspace_a;
   vector<int> workspace_b;
   vector<int> workspace_c;
-
-  vector<int>& U = workspace_a;
-  vector<int>& L = workspace_b;
-  vector<int>& G = workspace_c;
-  vector<int>& temp = U;
-
+  vector<int>* U = &workspace_a;
+  vector<int>* L = &workspace_b;
+  vector<int>* G = &workspace_c;
+  vector<int>* temp;
   // Populate U with all non-zero elements in weight vector.
-  float current_l1 = 0.0;
   for (int i = 0; i < dimensions_; ++i) {
-    if (weights_[i] != 0.0) {
-      U.push_back(i);
-      current_l1 += fabsf(weights_[i]);
+    if (fabsf(ValueOf(i)) > 0) {
+      U->push_back(i);
+      current_l1 += fabsf(ValueOf(i));
     }
   }
-  if (U.empty() || current_l1 < lambda) return;
 
   // Find the value of theta.
-  while (!U.empty()) {
-    G.clear();
-    L.clear();
-    int k = U[static_cast<int>(rand()) % U.size()];
-    float pivot_k = fabsf(weights_[k]);
-    float partial_sum_delta = fabsf(weights_[k]);
+  double partial_pivot = 0;
+  double partial_sum = 0;
+  while (U->size() > 0) {
+    G->clear();
+    L->clear();
+    int k = (*U)[static_cast<int>(rand() % U->size())];
+    float pivot_k = fabsf(ValueOf(k));
+    float partial_sum_delta = fabsf(ValueOf(k));
+    float partial_pivot_delta = 1.0;
     // Partition U using pivot_k.
-    for (unsigned int i = 0; i < U.size(); ++i) {
-      float w_k = fabsf(weights_[U[i]]);
-      if (w_k >= pivot_k && U[i] != k) {
-	partial_sum_delta += w_k;
-	G.push_back(i);
+    for (unsigned int i = 0; i < U->size(); ++i) {
+      float w_i = fabsf(ValueOf((*U)[i]));
+      if (w_i >= pivot_k) {
+	if ((*U)[i] != k) {
+	  partial_sum_delta += w_i;
+	  partial_pivot_delta += 1.0;
+	  G->push_back((*U)[i]);
+	}
       } else {
-	L.push_back(i);
+	L->push_back((*U)[i]);
       }
     }
-    float partial_pivot_delta = G.size() + 1.0;
     if ((partial_sum + partial_sum_delta) -
 	pivot_k * (partial_pivot + partial_pivot_delta) < lambda) {
       partial_sum += partial_sum_delta;
@@ -241,16 +291,17 @@ void SfWeightVector::ProjectToL1Ball(float lambda) {
       G = temp;
     }
   }
-  float theta = (partial_sum - lambda) / partial_pivot;
 
   // Perform the projection.
+  float theta = (partial_sum - lambda) / partial_pivot;  
   squared_norm_ = 0.0;
   for (int i = 0; i < dimensions_; ++i) {
-    if (weights_[i] == 0) continue;
-    int sign = (weights_[i] > 0) ? 1 : -1;
-    weights_[i] = sign * fmax((sign * weights_[i] - theta), 0); 
+    if (ValueOf(i) == 0.0) continue;
+    int sign = (ValueOf(i) > 0) ? 1 : -1;
+    weights_[i] = sign * fmax((sign * ValueOf(i) - theta), 0); 
     squared_norm_ += weights_[i] * weights_[i];
   }
+  scale_ = 1.0;
 }
 
 
