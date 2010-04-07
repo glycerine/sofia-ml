@@ -18,6 +18,7 @@
 // Implementation of sf-sparse-vector.h
 
 #include <cstring>
+#include <cstdio>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
