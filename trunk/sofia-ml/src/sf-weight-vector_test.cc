@@ -61,6 +61,7 @@ int main (int argc, char** argv) {
          w_4.InnerProductOnDifference(a, b, 1.0));
 
   w_4.ProjectToL1Ball(3.0);
+
   assert(w_4.ValueOf(0) == 0);
   assert(w_4.ValueOf(1) == 0);
   assert(w_4.ValueOf(2) == 0);
