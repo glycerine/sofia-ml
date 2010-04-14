@@ -96,6 +96,10 @@ class SfSparseVector {
   // updates the internal squared_norm_ member.
   void PushPair (int id, float value);
 
+  // Clear all feature values and the cached squared_norm_, leaving all
+  // other information unchanged.
+  void ClearFeatures() { features_.clear(); squared_norm_ = 0; }
+
  private:
   void AddToSquaredNorm(float addend) { squared_norm_ += addend; }
 
