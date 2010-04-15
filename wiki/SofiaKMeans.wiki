@@ -1,4 +1,4 @@
-#summary Documentation for sofia-kmeans.
+#summary Documentation for sofia-kmeans: fast k-means clustering.
 
 = Introduction =
 
