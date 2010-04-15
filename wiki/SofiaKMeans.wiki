@@ -1,0 +1,109 @@
+#summary Documentation for sofia-kmeans.
+
+= Introduction =
+
+The `sofia-kmeans` package allows k-means clustering on large scale data.  Options are included for using both random cluster initialization and the k-means++ algorithm for cluster seeding.  There are optimization methods for batch k-means (Lloyd's classic kmeans algorithm), Bottou and Bengio's online k-means variant (sgd k-means), and a very fast mini-batch stochastic gradient descent method for large scale data sets.
+
+
+= Details =
+
+== Building the package ==
+
+{{{
+# Go to the cluster source directory.
+> cd cluster-src
+# Build the package.
+> make
+# Show the help info.
+> ./sofia-kmeans
+}}}
+
+== Command line flag options: == 
+
+  * *--L1_epsilon*  When set to a positive value, we use an approximate L1 projection rather than an exact L1 projection.  The projection results in each center lying within a ball with L1 radius of between --L1_lambda and (1 + --L1_epsilon) `*` --L1_lambda.
+    Default is to peform exact projection.
+
+  * *--L1_lambda* When set to a positive value, forces each cluster center to lie within a ball with L1 radius at most --L1_lambda.
+    Default is not to enforce this constraint.
+
+  * *--buffer_mb* Size of buffer to use in reading/writing to files, in MB. 
+    Default: 40
+
+  * *--cluster_assignments_out*  Assign each example in the --test_file to its closest cluster center, and write these results to this file.  Format of the  file is <nearest center id>TAB<true label (if any)>.
+    Default: no output file.
+
+  * *--cluster_mapping_out*  Transform each vector in --test_file by mapping it onto the set of cluster centers.  Each example x is mapped to a new transformed vector x', where each coordinate i (ranging from  1..k+1) of  x' corresponds to cluster_center  i-1. The value of coordinate i is given by f(x, c(i-1))  where f is --cluster_mapping_type.
+    Default: no mapping output file.
+
+  * *--cluster_mapping_param* The parameter value to use in --cluster_mapping_out.  
+    Default is: 1.0.
+
+  *--cluster_mapping_type*  The mapping function to use to create the --cluster_mapping_out file.  The value p is given by --cluster_mapping_param.
+    Options are:
+      squared_distance        f(x, c) = `|``|``x - c`|``|` ^ 2
+      rbf_kernel              f(x, c) = exp(-p `*` `|``|`x - c`|``|` ^ 2)
+    Default: squared_distance
+
+  *--dimensionality*      Index value of largest feature index in training data set. 
+    Default: 2^17 = 131072
+
+      --init_type           Initialization procedure for seeding the kmeans optimization.
+    Options are:
+      random          random selection of cluster centers
+      kmeans_pp       kmeans++ initialization method (naive)
+      optimized_kmeans_pp   optimized kmeans++
+    Default: random
+
+      --iterations          Number of optimization steps to take.
+    Default: 100000
+
+      --k                   The number of cluster centers to find.  Must be set.
+
+
+      --mini_batch_size     When using mini_batch_kmeans, the number of examples to sample on each round.
+    Default: 100
+
+      --model_in            Read in a model from this file.
+
+      --model_out           Write the model to this file.
+
+      --no_bias_term        When set, causes a bias term x_0 to be set to 0 for every 
+    feature vector loaded from files, rather than the default 
+    of x_0 = 1.
+    Default: set.
+
+      --objective_after_init  Compute value of the kmeans objective function on training data,
+    after initializing the cluster centers.
+    Default is not to do this.
+
+      --objective_after_training  Compute value of the kmeans objective function on training data,
+    after completing training the cluster centers.
+    Default is not to do this.
+
+      --objective_on_test   Compute value of the kmeans objective function on test data.
+    Default is not to do this.
+
+      --opt_type            Optimization procedure for kmeans objective.
+    Options are: batch_kmeans, sgd_kmeans, mini_batch_kmeans
+     Default: sgd_kmeans
+
+      --random_seed         When set to non-zero value, use this seed instead of seed 
+    from system clock. This can be useful for parameter tuning 
+    in cross-validation, as setting a fixed seed by hand forces 
+    examples to be sampled in the same order.  However
+    for actual training/test, this should never be used.
+    Default: 0
+
+      --sample_size         When using sampling_kmeans_pp, the number of examples to sample on each round.
+    Default: 1000
+
+      --test_file           File to be used for testing.
+
+      --training_file       File to be used for training.
+
+
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
