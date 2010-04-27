@@ -256,6 +256,14 @@ SfDataSet* NewDataSet(const string& file_name) {
   return data_set;
 }
 
+void LoadModelFromFile(const string& file_name,
+		       SfClusterCenters** cluster_centers) {
+  if (*cluster_centers != NULL) delete *cluster_centers;
+
+  *cluster_centers = new SfClusterCenters(file_name);
+  assert(*cluster_centers != NULL);
+}
+
 void SaveModelToFile(const string& file_name,
 		     SfClusterCenters* cluster_centers) {
   std::fstream model_stream;
@@ -284,6 +292,11 @@ int main (int argc, char** argv) {
   SfClusterCenters* cluster_centers =
     new SfClusterCenters(CMD_LINE_INTS["--dimensionality"]);
   
+  // Load model (overwriting empty model), if needed.
+  if (!CMD_LINE_STRINGS["--model_in"].empty()) {
+    LoadModelFromFile(CMD_LINE_STRINGS["--model_in"], &cluster_centers); 
+  }
+
   // Train model, if needed.
   if (!CMD_LINE_STRINGS["--training_file"].empty()) {
     SfDataSet* training_data = NewDataSet(CMD_LINE_STRINGS["--training_file"]);
