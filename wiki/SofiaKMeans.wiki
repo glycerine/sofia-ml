@@ -81,6 +81,7 @@ Writing cluster mappings to: demo/mapped_data.txt
 
 Note that you can do this mapping for test and training data, by first learning cluster centers on the training data, and then creating mapped data sets for both the training and test set.  You can then use =sofia-ml= to learn a linear classifier on the mapped training data, and test it on the mapped test data.  This linear classifier will be learning a kernelized model that is non-linear in the original feature space, but much faster than traditional kernelized SVM's.
 
+
 ----
 ----
 ----
