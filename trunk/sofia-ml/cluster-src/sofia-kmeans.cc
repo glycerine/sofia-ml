@@ -85,8 +85,8 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--opt_type",
 	  "Optimization procedure for kmeans objective.\n"
 	  "    Options are: batch_kmeans, sgd_kmeans, mini_batch_kmeans\n"
-	  "     Default: sgd_kmeans",
-	  string("sgd_kmeans"));
+	  "     Default: mini_batch_kmeans",
+	  string("mini_batch_kmeans"));
   AddFlag("--sample_size",
           "When using sampling_kmeans_pp, the number of examples to sample on "
 	  "each round.\n"
@@ -98,8 +98,8 @@ void CommandLine(int argc, char** argv) {
           "    Default: 100",
           int(100));
   AddFlag("--iterations",
-          "Number of optimization steps to take.\n"
-          "    Default: 100000",
+          "Number of optimization iterations to take.\n"
+          "    Default: 1000",
           int(100000));
   AddFlag("--buffer_mb",
           "Size of buffer to use in reading/writing to files, in MB.\n"
@@ -139,7 +139,7 @@ void CommandLine(int argc, char** argv) {
 	  "    rather than an exact L1 projection.  The projection results\n"
 	  "    in each center lying within a ball with L1 radius of between\n"
 	  "    --L1_lambda and (1 + --L1_epsilon) * --L1_lambda.  Default is\n"
-	  "    to peform exact projection.",
+	  "    to perform exact projection.",
 	  float(0.0));
 
   ParseFlags(argc, argv);
