@@ -18,6 +18,7 @@ GCC= g++ -O3 -lm -Wall
 
 sofia-kmeans:
 	$(GCC) -o sofia-kmeans sofia-kmeans.cc sf-cluster-centers.cc sf-kmeans-methods.cc ../src/sf-weight-vector.cc  ../src/sf-data-set.cc  ../src/sf-sparse-vector.cc
+	cp sofia-kmeans ..
 
 all_test: sf-cluster-centers_test sf-kmeans-methods_test
 
@@ -30,6 +31,7 @@ sf-kmeans-methods_test:
 	./sf-kmeans-methods_test
 
 clean:
+	rm -f ../sofia-kmeans
 	rm -f sofia-kmeans
 	rm -f sf-cluster-centers_test
 	rm -f sf-kmeans-methods_test
