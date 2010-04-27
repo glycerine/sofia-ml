@@ -5,9 +5,9 @@
 The `sofia-kmeans` package allows k-means clustering on large scale data.  Options are included for using both random cluster initialization and the k-means++ algorithm for cluster seeding.  There are optimization methods for batch k-means (Lloyd's classic kmeans algorithm), Bottou and Bengio's online k-means variant (sgd k-means), and a very fast mini-batch stochastic gradient descent method for large scale data sets.
 
 
----
----
----
+----
+----
+----
 
 *Step 1* Check out the code:
 
@@ -81,9 +81,9 @@ Writing cluster mappings to: demo/mapped_data.txt
 
 Note that you can do this mapping for test and training data, by first learning cluster centers on the training data, and then creating mapped data sets for both the training and test set.  You can then use =sofia-ml= to learn a linear classifier on the mapped training data, and test it on the mapped test data.  This linear classifier will be learning a kernelized model that is non-linear in the original feature space, but much faster than traditional kernelized SVM's.
 
----
----
----
+----
+----
+----
 
 
 == Command line flag options: == 
@@ -169,9 +169,9 @@ Note that you can do this mapping for test and training data, by first learning 
   * *--objective_on_test*   Compute value of the kmeans objective function on test data.
     Default is not to do this.
 
----
----
----
+----
+----
+----
 
 
 ==Data Format==
