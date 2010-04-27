@@ -45,9 +45,9 @@ The `sofia-kmeans` package allows k-means clustering on large scale data.  Optio
 
   * *--init_type*           Initialization procedure for seeding the kmeans optimization.
     Options are:
-    * random          Random selection of cluster centers
-    * kmeans_pp       kmeans++ initialization method (naive)
-    * optimized_kmeans_pp   Optimized kmeans++; this is identical to kmeans++ but is faster.
+    * *random*          Random selection of cluster centers
+    * *kmeans_pp*       kmeans++ initialization method (naive)
+    * *optimized_kmeans_pp*   Optimized kmeans++; this is identical to kmeans++ but is faster.
     Default: random
 
   * *--random_seed*         When set to non-zero value, use this seed instead of seed from the system clock. This can be useful for parameter tuning in cross-validation, as setting a fixed seed by hand forces examples to be sampled in the same order.  However for actual training/test, this should never be used.
@@ -60,9 +60,9 @@ The `sofia-kmeans` package allows k-means clustering on large scale data.  Optio
 
   * *--opt_type*            Optimization procedure for kmeans objective.
     Options are:
-    * mini_batch_kmeans  The mini_batch kmeans algorithm in [Sculley 2010].  This uses a mini_batch of size --mini_batch_size to compute gradients for updates on each iteration.   Coverges very quickly to solution nearly as good as batch_kmeans.
-    * batch_kmeans   Lloyd's classic batch kmeans algorithm.
-    * sgd_kmeans  The online stochastic gradient descent method of Bottou and Bengio.  This converges very quickly, but tends to find lower quality solutions compared to batch_kmeans or mini_batch_kmeans.
+    * *mini_batch_kmeans*  The mini_batch kmeans algorithm in [Sculley 2010].  This uses a mini_batch of size --mini_batch_size to compute gradients for updates on each iteration.   Coverges very quickly to solution nearly as good as batch_kmeans.
+    * *batch_kmeans*   Lloyd's classic batch kmeans algorithm.
+    * *sgd_kmeans*  The online stochastic gradient descent method of Bottou and Bengio.  This converges very quickly, but tends to find lower quality solutions compared to batch_kmeans or mini_batch_kmeans.
      Default: mini_batch_kmeans
 
   * *--iterations*          Number of optimization iterations to take.  This value will be very different for mini_batch_kmeans (10^3-10^5), batch_kmeans (10^1-10^3), and sgd_kmeans (10^5-10^8).  Of course, the cost of each iteration is also very different.
