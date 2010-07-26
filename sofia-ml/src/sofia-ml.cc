@@ -60,7 +60,7 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--learner_type",
 	  "Type of learner to use.\n"
 	  "    Options are: pegasos, passive-aggressive, margin-perceptron, "
-	  "romma, sgd-svm and logreg-pegasos.\n"
+	  "romma, sgd-svm, least-mean-squares, logreg, and logreg-pegasos.\n"
 	  "    Default: pegasos",
 	  string("pegasos"));
   AddFlag("--eta_type",
@@ -71,9 +71,22 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--loop_type",
 	  "Type of loop to use for training, controlling how examples are selected.\n"
 	  "    Options are: stochastic, balanced-stochastic, "
-	  "roc, rank, query-norm-rank.\n"
+	  "roc, rank, query-norm-rank, combined-ranking, "
+	  "combined-roc\n"
 	  "    Default: stochastic",
 	  string("stochastic"));
+  AddFlag("--prediction_type",
+	  "Type of predictions to compute on test data.\n"
+	  "    Options are: linear, logistic\n"
+	  "    Use linear for SVM predictions.\n"
+	  "    Default: linear",
+	  string("linear"));
+  AddFlag("--rank_step_probability",
+	  "Probability that we will take a rank step (as opposed to a  \n"
+	  "    classification step) in a combined-ranking or "
+	  "    combined-roc loop.\n"
+	  "    Default: 0.5",
+	  float(0.5));
   AddFlag("--passive_aggressive_c",
 	  "Maximum size of any step taken in a single passive-aggressive update.",
 	  float(10000000.0));
@@ -189,12 +202,17 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
   }
   else if (CMD_LINE_STRINGS["--learner_type"] == "logreg-pegasos")
     learner_type = sofia_ml::LOGREG_PEGASOS;
+  else if (CMD_LINE_STRINGS["--learner_type"] == "logreg")
+    learner_type = sofia_ml::LOGREG;
+  else if (CMD_LINE_STRINGS["--learner_type"] == "least-mean-squares")
+    learner_type = sofia_ml::LMS_REGRESSION;
   else if (CMD_LINE_STRINGS["--learner_type"] == "sgd-svm")
     learner_type = sofia_ml::SGD_SVM;
   else if (CMD_LINE_STRINGS["--learner_type"] == "romma")
     learner_type = sofia_ml::ROMMA;
   else {
-    std::cerr << "--learner_type " << CMD_LINE_STRINGS["--learner_type"] << " not supported.";
+    std::cerr << "--learner_type " << CMD_LINE_STRINGS["--learner_type"]
+	      << " not supported.";
     exit(0);
   }
   
@@ -230,6 +248,26 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
 			      c,
 			      CMD_LINE_INTS["--iterations"],
 			      w);
+  else if (CMD_LINE_STRINGS["--loop_type"] == "combined-ranking")
+    sofia_ml::StochasticClassificationAndRankLoop(
+		training_data,
+		learner_type,
+		eta_type,
+		lambda,
+		c,
+		CMD_LINE_FLOATS["--rank_step_probability"],
+		CMD_LINE_INTS["--iterations"],
+		w);
+  else if (CMD_LINE_STRINGS["--loop_type"] == "combined-roc")
+    sofia_ml::StochasticClassificationAndRocLoop(
+		training_data,
+		learner_type,
+		eta_type,
+		lambda,
+		c,
+		CMD_LINE_FLOATS["--rank_step_probability"],
+		CMD_LINE_INTS["--iterations"],
+		w);
   else if (CMD_LINE_STRINGS["--loop_type"] == "query-norm-rank")
     sofia_ml::StochasticQueryNormRankLoop(training_data,
 			      learner_type,
@@ -312,7 +350,16 @@ int main (int argc, char** argv) {
     
     vector<float> predictions;
     clock_t predict_start = clock();
-    sofia_ml::SvmPredictionsOnTestSet(test_data, *w, &predictions);
+    if (CMD_LINE_STRINGS["--prediction_type"] == "linear")
+      sofia_ml::SvmPredictionsOnTestSet(test_data, *w, &predictions);
+    else if (CMD_LINE_STRINGS["--prediction_type"] == "logistic")
+      sofia_ml::LogisticPredictionsOnTestSet(test_data, *w, &predictions);
+    else {
+      std::cerr << "--prediction " << CMD_LINE_STRINGS["--prediction_type"]
+		<< " not supported.";
+      exit(0);
+    }
+
     PrintElapsedTime(predict_start, "Time to make test prediction results: ");
     
     std::fstream prediction_stream;

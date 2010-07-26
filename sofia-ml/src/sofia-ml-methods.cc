@@ -45,6 +45,10 @@ namespace sofia_ml {
     return static_cast<int>(rand()) % num_vals;
   }
 
+  float RandFloat() {
+    return static_cast<float>(rand()) / RAND_MAX;
+  }
+
   const SfSparseVector& RandomExample(const SfDataSet& data_set) {
     int num_examples = data_set.NumExamples();
     int i = static_cast<int>(rand()) % num_examples;
@@ -57,7 +61,7 @@ namespace sofia_ml {
   inline float GetEta (EtaType eta_type, float lambda, int i) {
     switch (eta_type) {
     case BASIC_ETA:
-      return 1000.0 / (i + 1000.0);
+      return 10.0 / (i + 10.0);
       break;
     case PEGASOS_ETA:
       return 1.0 / (lambda * i);
@@ -152,6 +156,99 @@ namespace sofia_ml {
       const SfSparseVector& neg_x =
 	training_set.VectorAt(negatives[RandInt(negatives.size())]);
       OneLearnerRankStep(learner_type, pos_x, neg_x, eta, c, lambda, w);
+    }
+  }
+
+  void StochasticClassificationAndRocLoop(const SfDataSet& training_set,
+					   LearnerType learner_type,
+					   EtaType eta_type,
+					   float lambda,
+					   float c,
+					   float rank_step_probability,
+					   int num_iters,
+					   SfWeightVector* w) {
+    // Create index of positives and negatives for fast sampling
+    // of disagreeing pairs.
+    vector<int> positives;
+    vector<int> negatives;
+    for (int i = 0; i < training_set.NumExamples(); ++i) {
+      if (training_set.VectorAt(i).GetY() > 0.0)
+	positives.push_back(i);
+      else
+	negatives.push_back(i);
+    }
+
+    for (int i = 1; i <= num_iters; ++i) {
+      float eta = GetEta(eta_type, lambda, i);
+      if (RandFloat() < rank_step_probability) {
+	// For each step, randomly sample one positive and one negative and
+	// take a pairwise gradient step.
+	const SfSparseVector& pos_x =
+	  training_set.VectorAt(positives[RandInt(positives.size())]);
+	const SfSparseVector& neg_x =
+	  training_set.VectorAt(negatives[RandInt(negatives.size())]);
+	OneLearnerRankStep(learner_type, pos_x, neg_x, eta, c, lambda, w);
+      } else {
+	// Take a classification step.
+	int random_example =
+	  static_cast<int>(rand()) % training_set.NumExamples();
+	const SfSparseVector& x = training_set.VectorAt(random_example);
+	float eta = GetEta(eta_type, lambda, i);
+	OneLearnerStep(learner_type, x, eta, c, lambda, w);      
+      }
+    }
+  }
+  
+  void StochasticClassificationAndRankLoop(const SfDataSet& training_set,
+					   LearnerType learner_type,
+					   EtaType eta_type,
+					   float lambda,
+					   float c,
+					   float rank_step_probability,
+					   int num_iters,
+					   SfWeightVector* w) {
+    std::map<string, std::map<float, vector<int> > > group_id_y_to_index;
+    std::map<string, int> group_id_y_to_count;
+    for (int i = 0; i < training_set.NumExamples(); ++i) {
+      const string& group_id = training_set.VectorAt(i).GetGroupId();
+      group_id_y_to_index[group_id][training_set.VectorAt(i).GetY()].push_back(i);
+      group_id_y_to_count[group_id] += 1;
+    }
+    
+    for (int i = 1; i <= num_iters; ++i) {
+      if (RandFloat() < rank_step_probability) {
+	// Take a rank step.
+	const SfSparseVector& a = RandomExample(training_set);
+	const string& group_id = a.GetGroupId();
+	float a_y = a.GetY();
+	const std::map<float, vector<int> >& y_to_list =
+	  group_id_y_to_index[group_id];
+	int range = group_id_y_to_count[group_id] -
+	  group_id_y_to_index[group_id][a_y].size();
+	if (range == 0) continue;
+	unsigned int random_int = RandInt(range);
+	for (std::map<float, vector<int> >::const_iterator iter =
+	       y_to_list.begin();
+	     iter != y_to_list.end();
+	     iter++) {
+	  if (iter->first == a_y) continue;
+	  if (random_int < iter->second.size()) {
+	    const SfSparseVector& b = 
+	      training_set.VectorAt((iter->second)[random_int]);
+	    float eta = GetEta(eta_type, lambda, i);
+	    OneLearnerRankStep(learner_type, a, b, eta, c, lambda, w);
+	    break;
+	  }
+	  random_int -= iter->second.size();
+	}
+      } else {
+	// Take a classification step.
+	int random_example =
+	  static_cast<int>(rand()) % training_set.NumExamples();
+	const SfSparseVector& x = training_set.VectorAt(random_example);
+	float eta = GetEta(eta_type, lambda, i);
+	OneLearnerStep(learner_type, x, eta, c, lambda, w);
+      }
     }
   }
 
@@ -252,6 +349,12 @@ namespace sofia_ml {
 			    const SfWeightVector& w) {
     return w.InnerProduct(x);
   }
+
+  float SingleLogisticPrediction(const SfSparseVector& x,
+				 const SfWeightVector& w) {
+    float p = w.InnerProduct(x);
+    return exp(p) / (1.0 + exp(p));
+  }
   
   void SvmPredictionsOnTestSet(const SfDataSet& test_data,
 			       const SfWeightVector& w,
@@ -260,6 +363,17 @@ namespace sofia_ml {
     int size = test_data.NumExamples();
     for (int i = 0; i < size; ++i) {
       predictions->push_back(w.InnerProduct(test_data.VectorAt(i)));
+    }
+  }
+
+  void LogisticPredictionsOnTestSet(const SfDataSet& test_data,
+				    const SfWeightVector& w,
+				    vector<float>* predictions) {
+    predictions->clear();
+    int size = test_data.NumExamples();
+    for (int i = 0; i < size; ++i) {
+      predictions->push_back(SingleLogisticPrediction(test_data.VectorAt(i),
+						      w));
     }
   }
 
@@ -297,6 +411,10 @@ namespace sofia_ml {
       return SinglePassiveAggressiveStep(x, lambda, c, w);
     case LOGREG_PEGASOS:
       return SinglePegasosLogRegStep(x, eta, lambda, w);
+    case LOGREG:
+      return SingleLogRegStep(x, eta, lambda, w);
+    case LMS_REGRESSION:
+      return SingleLeastMeanSquaresStep(x, eta, lambda, w);
     case SGD_SVM:
       return SingleSgdSvmStep(x, eta, lambda, w);
     case ROMMA:
@@ -324,6 +442,10 @@ namespace sofia_ml {
       return SinglePassiveAggressiveRankStep(a, b, lambda, c, w);
     case LOGREG_PEGASOS:
       return SinglePegasosLogRegRankStep(a, b, eta, lambda, w);
+    case LOGREG:
+      return SingleLogRegRankStep(a, b, eta, lambda, w);
+    case LMS_REGRESSION:
+      return SingleLeastMeanSquaresRankStep(a, b, eta, lambda, w);
     case SGD_SVM:
       return SingleSgdSvmRankStep(a, b, eta, lambda, w);
     case ROMMA:
@@ -414,8 +536,30 @@ namespace sofia_ml {
 			       SfWeightVector* w) {
     float loss = x.GetY() / (1 + exp(x.GetY() * w->InnerProduct(x)));
 
-    w->AddVector(x, (eta * loss));
     L2Regularize(eta, lambda, w);    
+    w->AddVector(x, (eta * loss));
+    PegasosProjection(lambda, w);
+    return (true);
+  }
+
+  bool SingleLogRegStep(const SfSparseVector& x,
+			float eta,
+			float lambda,
+			SfWeightVector* w) {
+    float loss = x.GetY() / (1 + exp(x.GetY() * w->InnerProduct(x)));
+
+    L2Regularize(eta, lambda, w);    
+    w->AddVector(x, (eta * loss));
+    return (true);
+  }
+
+  bool SingleLeastMeanSquaresStep(const SfSparseVector& x,
+				  float eta,
+				  float lambda,
+				  SfWeightVector* w) {
+    float loss = x.GetY() - w->InnerProduct(x);
+    L2Regularize(eta, lambda, w);    
+    w->AddVector(x, (eta * loss));
     PegasosProjection(lambda, w);
     return (true);
   }
@@ -520,6 +664,21 @@ namespace sofia_ml {
     return (p < 1.0 && y != 0.0);
   }
 
+  bool SingleLeastMeanSquaresRankStep(const SfSparseVector& a,
+			     const SfSparseVector& b,
+			     float eta,
+			     float lambda,
+			     SfWeightVector* w) {
+    float y = (a.GetY() - b.GetY());
+    float loss = y - w->InnerProductOnDifference(a, b);
+
+    L2Regularize(eta, lambda, w);
+    w->AddVector(a, (eta * loss));
+    w->AddVector(b, (-1.0 * eta * loss));
+    PegasosProjection(lambda, w);
+    return (true);
+  }
+
   bool SingleRommaRankStep(const SfSparseVector& a,
 			   const SfSparseVector& b,
 			   SfWeightVector* w) {
@@ -543,12 +702,27 @@ namespace sofia_ml {
     float y = (a.GetY() > b.GetY()) ? 1.0 :
       (a.GetY() < b.GetY()) ? -1.0 : 0.0;
     float loss = y / (1 + exp(y * w->InnerProductOnDifference(a, b)));
+    L2Regularize(eta, lambda, w);    
 
     w->AddVector(a, (eta * loss));
     w->AddVector(b, (-1.0 * eta * loss));
 
-    L2Regularize(eta, lambda, w);    
     PegasosProjection(lambda, w);
+    return (true);
+  }
+
+  bool SingleLogRegRankStep(const SfSparseVector& a,
+			    const SfSparseVector& b,
+			    float eta,
+			    float lambda,
+			    SfWeightVector* w) {
+    float y = (a.GetY() > b.GetY()) ? 1.0 :
+      (a.GetY() < b.GetY()) ? -1.0 : 0.0;
+    float loss = y / (1 + exp(y * w->InnerProductOnDifference(a, b)));
+    L2Regularize(eta, lambda, w);    
+
+    w->AddVector(a, (eta * loss));
+    w->AddVector(b, (-1.0 * eta * loss));
     return (true);
   }
 

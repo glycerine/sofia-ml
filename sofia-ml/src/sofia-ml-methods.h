@@ -1,26 +1,26 @@
-//================================================================================//
-// Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
-// Licensed under the Apache License, Version 2.0 (the "License");                //
-// you may not use this file except in compliance with the License.               //
-// You may obtain a copy of the License at                                        //
-//                                                                                //
-//      http://www.apache.org/licenses/LICENSE-2.0                                //
-//                                                                                //
-// Unless required by applicable law or agreed to in writing, software            //
-// distributed under the License is distributed on an "AS IS" BASIS,              //
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.       //
-// See the License for the specific language governing permissions and            //
-// limitations under the License.                                                 //
-//================================================================================//
+//===========================================================================//
+// Copyright 2009 Google Inc.                                                //
+//                                                                           //
+// Licensed under the Apache License, Version 2.0 (the "License");           //
+// you may not use this file except in compliance with the License.          //
+// You may obtain a copy of the License at                                   //
+//                                                                           //
+//      http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                           //
+// Unless required by applicable law or agreed to in writing, software       //
+// distributed under the License is distributed on an "AS IS" BASIS,         //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  //
+// See the License for the specific language governing permissions and       //
+// limitations under the License.                                            //
+//===========================================================================//
 //
 // sofia-ml-methods.h
 //
 // Author: D. Sculley
 // dsculley@google.com or dsculley@cs.tufts.edu
 //
-// Non-member functions for training and applying classifiers in the sofia-ml suite.
-// This is the main API that callers will use.
+// Non-member functions for training and applying classifiers in the
+// sofia-ml suite.  This is the main API that callers will use.
 
 #ifndef SOFIA_ML_METHODS_H__
 #define SOFIA_ML_METHODS_H__
@@ -31,13 +31,15 @@
 
 namespace sofia_ml {
 
-  //------------------------------------------------------------------------------
-  //                       Main API methods for Model Training
-  //------------------------------------------------------------------------------
+  //--------------------------------------------------------------------------
+  //                     Main API methods for Model Training
+  //--------------------------------------------------------------------------
   // This section contains the Main API methods to call for training a model on
-  // a given data set.  For each method, the parameters are described as follows:
+  // a given data set.
+  //  For each method, the parameters are described as follows:
   //   training_set  an SfDataSet filled with labeled training data.
-  //   learner_type  a LearnerType enum value (defined above) showing which learner to use.
+  //   learner_type  a LearnerType enum value (defined above) 
+  //                   showing which learner to use.
   //   eta_type      an EtaType enum showing how to update the learning rate.
   //   lambda        regularization parameter (ignored by some LearnerTypes)
   //   c             capacity parameter (ignored by some LearnerTypes)
@@ -49,6 +51,9 @@ namespace sofia_ml {
     MARGIN_PERCEPTRON,  // Perceptron with Margins, where margin size is determined by parameter c
     PASSIVE_AGGRESSIVE,  // Passive Aggressive Perceptron, where c controls the maximum step size.
     LOGREG_PEGASOS,  // Logistic Regression using Pegasos projection, and lambda as regularization parameter.
+    LOGREG,  // Logistic Regression using lambda as regularization parameter.
+    LMS_REGRESSION, // Least-mean-squares Regression (using Pegasos projection), and lambda
+                    //as regularization parameter.
     SGD_SVM,  // Stochastic Gradient Descent SVM; lambda is regularization parameter.
     ROMMA  // ROMMA algorithm; takes no regularization parameter.
   };
@@ -99,6 +104,24 @@ namespace sofia_ml {
 			 int num_iters,
 			 SfWeightVector* w);
 
+  void StochasticClassificationAndRocLoop(const SfDataSet& training_set,
+					   LearnerType learner_type,
+					   EtaType eta_type,
+					   float lambda,
+					   float c,
+					   float rank_step_probability,
+					   int num_iters,
+					   SfWeightVector* w);
+
+  void StochasticClassificationAndRankLoop(const SfDataSet& training_set,
+					   LearnerType learner_type,
+					   EtaType eta_type,
+					   float lambda,
+					   float c,
+					   float rank_step_probability,
+					   int num_iters,
+					   SfWeightVector* w);
+
   // Trains a model w over training_set, using learner_type and eta_type learner with
   // given parameters.  Trains a model using the RankSVM objective function, using
   // indexed-based sampling to sample from the set of all possible canidate pairs
@@ -131,10 +154,19 @@ namespace sofia_ml {
   float SingleSvmPrediction(const SfSparseVector& x,
 			    const SfWeightVector& w);
 
+  // Computes a single linear prediction, returning f(x) = e(< x, w >) / (1.0 + e(< x, w >))
+  float SingleLogisticPrediction(const SfSparseVector& x,
+				 const SfWeightVector& w);
+
   // Performs a SingleSvmPrediction on each example in test_data.
   void SvmPredictionsOnTestSet(const SfDataSet& test_data,
 			       const SfWeightVector& w,
 			       vector<float>* predictions);
+
+  // Performs a SingleLogisticPrediction on each example in test_data.
+  void LogisticPredictionsOnTestSet(const SfDataSet& test_data,
+				    const SfWeightVector& w,
+				    vector<float>* predictions);
 
   // Computes the value of binary class SVM objective function on the given data set, given a
   // model w and a value of the regularization parameter lambda.
@@ -192,6 +224,23 @@ namespace sofia_ml {
 			       float lambda,
 			       SfWeightVector* w);
 
+  // Takes a single SDG step using logistic loss function (logistic
+  // regression) rather than hinge loss function (SVM loss).  Includes
+  // L2 regularization. Always returns true.
+  bool SingleLogRegStep(const SfSparseVector& x,
+			float eta,
+			float lambda,
+			SfWeightVector* w);
+  
+  // Takes a single PEGASOS step using least-mean-squares objective function
+  // rather than hinge loss function (SVM loss).  Includes L2 regularization
+  // and projection.  Always returns true, as updates are performed for all
+  // examples.
+  bool SingleLeastMeanSquaresStep(const SfSparseVector& x,
+				  float eta,
+				  float lambda,
+				  SfWeightVector* w);
+
   // Takes a single margin-perceptron step (with margin size = c).
   bool SingleMarginPerceptronStep(const SfSparseVector& x,
 				  float eta,
@@ -224,7 +273,7 @@ namespace sofia_ml {
 			     float lambda,
 			     SfWeightVector* w);
 
-  // Takes a single ROMMA step.
+  // Takes a single ROMMA rank step.
   bool SingleRommaRankStep(const SfSparseVector& a,
 			   const SfSparseVector& b,
 			   SfWeightVector* w);
@@ -237,6 +286,14 @@ namespace sofia_ml {
 				      float c,
 				      SfWeightVector* w);
 
+  // Takes a single margin-perceptron step (with margin size = c), on the
+  // vector (a-b).
+  bool SingleLeastMeanSquaresRankStep(const SfSparseVector& a,
+				      const SfSparseVector& b,
+				      float eta,
+				      float c,
+				      SfWeightVector* w);
+
   // Takes a single logistic regression step on vector (a-b), using pegasos
   // projection for regularization.
   bool SinglePegasosLogRegRankStep(const SfSparseVector& a,
@@ -244,6 +301,15 @@ namespace sofia_ml {
                                    float eta,
                                    float lambda,
                                    SfWeightVector* w);
+
+  // Takes a single logistic regression step on vector (a-b), using lambda
+  // regularization.
+  bool SingleLogRegRankStep(const SfSparseVector& a,
+			    const SfSparseVector& b,
+			    float eta,
+			    float lambda,
+			    SfWeightVector* w);
+
 
   // Takes a single RANK WITH TIES step using PEGASOS, including regularization
   // and projection.
