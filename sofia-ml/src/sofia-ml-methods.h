@@ -28,6 +28,7 @@
 #include "sf-data-set.h"
 #include "sf-sparse-vector.h"
 #include "sf-weight-vector.h"
+#include "sf-multi-label-weight-vector.h"
 
 namespace sofia_ml {
 
@@ -38,7 +39,7 @@ namespace sofia_ml {
   // a given data set.
   //  For each method, the parameters are described as follows:
   //   training_set  an SfDataSet filled with labeled training data.
-  //   learner_type  a LearnerType enum value (defined above) 
+  //   learner_type  a LearnerType enum value (defined above)
   //                   showing which learner to use.
   //   eta_type      an EtaType enum showing how to update the learning rate.
   //   lambda        regularization parameter (ignored by some LearnerTypes)
@@ -61,14 +62,14 @@ namespace sofia_ml {
   // Learning rate Eta may be set in different ways.
   enum EtaType {
     BASIC_ETA,  // On step i, eta = 1000 / (1000 + i)
-    PEGASOS_ETA,  // On step i, eta = 1.0 / (lambda * i) 
+    PEGASOS_ETA,  // On step i, eta = 1.0 / (lambda * i)
     CONSTANT  // Use constant eta = 0.02 for all steps.
   };
 
   // Trains a model w over training_set, using learner_type and eta_type learner with
   // given parameters.  For each iteration, samples one example uniformly at random from
   // training set.  Each example in the training_set has an equal probability of being
-  // selected on any given set; this is the training method to use for training a 
+  // selected on any given set; this is the training method to use for training a
   // standard binary-class classifier.
   void StochasticOuterLoop(const SfDataSet& training_set,
                            LearnerType learner_type,
@@ -77,6 +78,19 @@ namespace sofia_ml {
                            float c,
                            int num_iters,
                            SfWeightVector* w);
+  //
+  // Trains a model w over training_set, using learner_type and eta_type learner with
+  // given parameters.  For each iteration, samples one example uniformly at random from
+  // training set.  Each example in the training_set has an equal probability of being
+  // selected on any given set; this is the training method to use for training a
+  // multi-label classifier.
+  void StochasticMultiLabelOuterLoop(const SfDataSet& training_set,
+                                     LearnerType learner_type,
+                                     EtaType eta_type,
+                                     float lambda,
+                                     float c,
+                                     int num_iters,
+                                     SfMultiLabelWeightVector* w);
 
   // Trains a model w over training_set, using learner_type and eta_type learner with
   // given parameters.  For each iteration, samples one positive example uniformly at
@@ -90,6 +104,26 @@ namespace sofia_ml {
                                    float c,
                                    int num_iters,
                                    SfWeightVector* w);
+
+  // Trains a model w over training_set, using learner_type and eta_type learner with
+  // given parameters. The dataset is first shuffled (online algorithms
+  // are sensitive to dataset order) and then the routine makes several passes over
+  // the dataset.
+  void MultiplePassOuterLoop(const SfDataSet& training_set,
+                             LearnerType learner_type,
+                             EtaType eta_type,
+                             float lambda,
+                             float c,
+                             int num_passes,
+                             SfWeightVector* w);
+
+  void MultiplePassMultiLabelOuterLoop(const SfDataSet& training_set,
+                                       LearnerType learner_type,
+                                       EtaType eta_type,
+                                       float lambda,
+                                       float c,
+                                       int num_passes,
+                                       SfMultiLabelWeightVector* w);
 
   // Trains a model w over training_set, using learner_type and eta_type learner with
   // given parameters.  For each iteration, samples one positive example uniformly at
@@ -187,6 +221,16 @@ namespace sofia_ml {
 		      float lambda,
 		      SfWeightVector* w);
 
+  // Takes one step using the LearnerType defined by method, and returns true
+  // iff the method took a gradient step (ie, modified the model).
+  bool OneLearnerMultiLabelStep(LearnerType method,
+		      const SfSparseVector& x,
+		      float eta,
+		      float c,
+		      float lambda,
+          int num_labels,
+		      SfMultiLabelWeightVector* w);
+
   // Takes one rank (a-b) step using the LearnerType defined by method, and returns true
   // iff the method took a gradient step (mod.
   bool OneLearnerRankStep(LearnerType method,
@@ -231,7 +275,7 @@ namespace sofia_ml {
 			float eta,
 			float lambda,
 			SfWeightVector* w);
-  
+
   // Takes a single PEGASOS step using least-mean-squares objective function
   // rather than hinge loss function (SVM loss).  Includes L2 regularization
   // and projection.  Always returns true, as updates are performed for all
@@ -329,6 +373,12 @@ namespace sofia_ml {
 				   float max_step,
 				   SfWeightVector* w);
 
+  bool SinglePassiveAggressiveMultiLabelStep(const SfSparseVector& x,
+				   float lambda,
+				   float max_step,
+           int num_labels,
+				   SfMultiLabelWeightVector* w);
+
   // Takes a single RANK step with Passive-Aggressive method including
   // projection, using vector defined by (a - b), with
   // y = 1 iff a.GetY() > b.GetY(), y = -1 iff b.GetY() > a.GetY(),
@@ -363,7 +413,7 @@ namespace sofia_ml {
 				float lambda,
 				float effective_steps,
 				SfWeightVector* w);
-  
+
 }  // namespace sofia_ml
 
 #endif  // SOFIA_ML_METHODS_H__

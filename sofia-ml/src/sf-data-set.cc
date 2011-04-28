@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -43,7 +43,7 @@ SfDataSet::SfDataSet(const string& file_name,
   long int buffer_size = buffer_mb * 1024 * 1024;
   char* local_buffer = new char[buffer_size];
   std::ifstream file_stream(file_name.c_str(), std::ifstream::in);
-  file_stream.rdbuf()->pubsetbuf(local_buffer, buffer_size); 
+  file_stream.rdbuf()->pubsetbuf(local_buffer, buffer_size);
   if (!file_stream) {
     std::cerr << "Error reading file " << file_name << std::endl;
     exit(1);
@@ -53,7 +53,7 @@ SfDataSet::SfDataSet(const string& file_name,
   while (getline(file_stream, line_string)) {
     AddVector(line_string);
   }
-  
+
   delete[] local_buffer;
 }
 
@@ -63,6 +63,27 @@ string SfDataSet::AsString() const {
     out_string += VectorAt(i).AsString() + "\n";
   }
   return out_string;
+}
+
+float SfDataSet::MaxY() const {
+  float max = 0;
+  for (unsigned int i = 0; i < vectors_.size(); ++i) {
+    // assume the labels are sorted
+    float y = vectors_[i].GetYVector().back();
+    if (y > max) max = y;
+  }
+  return max;
+}
+
+int SfDataSet::MaxDimensions() const {
+  int max = 0;
+  for (unsigned int i = 0; i < vectors_.size(); ++i) {
+    // assume the labels are sorted
+    const SfSparseVector& v = vectors_[i];
+    int feat = v.FeatureAt(v.NumFeatures() - 1);
+    if (feat > max) max = feat;
+  }
+  return max;
 }
 
 const SfSparseVector& SfDataSet::VectorAt(long int index) const {

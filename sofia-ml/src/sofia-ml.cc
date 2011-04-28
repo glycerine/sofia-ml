@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -19,7 +19,7 @@
 // Author: D. Sculley
 // dsculley@google.com or dsculley@cs.tufts.edu
 //
-// Main file for stochastic active set svm (sofia-ml), 
+// Main file for stochastic active set svm (sofia-ml),
 // a variant of the PEGASOS stochastic gradient svm solver.
 
 #include <assert.h>
@@ -32,6 +32,7 @@
 #include "sf-hash-weight-vector.h"
 #include "sofia-ml-methods.h"
 #include "sf-weight-vector.h"
+#include "sf-multi-label-weight-vector.h"
 #include "simple-cmd-line-helper.h"
 
 using std::string;
@@ -49,7 +50,7 @@ void CommandLine(int argc, char** argv) {
 	  "    for actual training/test, this should never be used.\n"
 	  "    Default: 0",
 	  int(0));
-  AddFlag("--lambda", 
+  AddFlag("--lambda",
 	  "Value of lambda for svm regularization.\n"
 	  "    Default: 0.1",
 	  float(0.1));
@@ -57,6 +58,10 @@ void CommandLine(int argc, char** argv) {
 	  "Number of stochastic gradient steps to take.\n"
 	  "    Default: 100000",
 	  int(100000));
+  AddFlag("--passes",
+	  "Number of passes to make over the dataset.\n"
+	  "    Default: 10",
+	  int(10));
   AddFlag("--learner_type",
 	  "Type of learner to use.\n"
 	  "    Options are: pegasos, passive-aggressive, margin-perceptron, "
@@ -108,6 +113,7 @@ void CommandLine(int argc, char** argv) {
 	  int(40));
   AddFlag("--dimensionality",
 	  "Index value of largest feature index in training data set. \n"
+    "Automatically adjust if 0.\n"
 	  "    Default: 2^17 = 131072",
 	  int(2<<16));
   AddFlag("--hash_mask_bits",
@@ -146,11 +152,7 @@ void SaveModelToFile(const string& file_name, SfWeightVector* w) {
   std::cerr << "   Done." << std::endl;
 }
 
-void LoadModelFromFile(const string& file_name, SfWeightVector** w) {
-  if (*w != NULL) {
-    delete *w;
-  }
-
+SfWeightVector* LoadModelFromFile(const string& file_name) {
   std::fstream model_stream;
   model_stream.open(file_name.c_str(), std::fstream::in);
   if (!model_stream) {
@@ -164,8 +166,20 @@ void LoadModelFromFile(const string& file_name, SfWeightVector** w) {
   model_stream.close();
   std::cerr << "   Done." << std::endl;
 
-  *w = new SfWeightVector(model_string);
-  assert(*w != NULL);
+  SfWeightVector* w = NULL;
+
+  if (CMD_LINE_STRINGS["--prediction_type"] == "multi-label") {
+    w = new SfMultiLabelWeightVector(model_string);
+  }
+  else if (CMD_LINE_INTS["--hash_mask_bits"] == 0) {
+    w = new SfWeightVector(model_string);
+  } else {
+    w = new SfHashWeightVector(CMD_LINE_INTS["--hash_mask_bits"], model_string);
+  }
+
+  assert(w != NULL);
+
+  return w;
 }
 
 void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
@@ -187,7 +201,7 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
     std::cerr << "--eta type " << CMD_LINE_STRINGS["--eta_type"] << " not supported.";
     exit(0);
   }
- 
+
   sofia_ml::LearnerType learner_type;
   if (CMD_LINE_STRINGS["--learner_type"] == "pegasos")
     learner_type = sofia_ml::PEGASOS;
@@ -215,7 +229,7 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
 	      << " not supported.";
     exit(0);
   }
-  
+
   if (CMD_LINE_STRINGS["--loop_type"] == "stochastic")
     sofia_ml::StochasticOuterLoop(training_data,
 				learner_type,
@@ -224,6 +238,14 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
 				c,
 				CMD_LINE_INTS["--iterations"],
 				w);
+  else if (CMD_LINE_STRINGS["--loop_type"] == "stochastic-multi-label")
+    sofia_ml::StochasticMultiLabelOuterLoop(training_data,
+				learner_type,
+				eta_type,
+				lambda,
+				c,
+				CMD_LINE_INTS["--iterations"],
+				static_cast<SfMultiLabelWeightVector *>(w));
   else if (CMD_LINE_STRINGS["--loop_type"] == "balanced-stochastic")
     sofia_ml::BalancedStochasticOuterLoop(training_data,
 					learner_type,
@@ -232,6 +254,22 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
 					c,
 					CMD_LINE_INTS["--iterations"],
 					w);
+  else if (CMD_LINE_STRINGS["--loop_type"] == "multiple-passes")
+    sofia_ml::MultiplePassOuterLoop(training_data,
+					learner_type,
+					eta_type,
+					lambda,
+					c,
+					CMD_LINE_INTS["--passes"],
+					w);
+  else if (CMD_LINE_STRINGS["--loop_type"] == "multiple-passes-multi-label")
+    sofia_ml::MultiplePassMultiLabelOuterLoop(training_data,
+				learner_type,
+				eta_type,
+				lambda,
+				c,
+				CMD_LINE_INTS["--passes"],
+				static_cast<SfMultiLabelWeightVector *>(w));
   else if (CMD_LINE_STRINGS["--loop_type"] == "roc")
     sofia_ml::StochasticRocLoop(training_data,
 			      learner_type,
@@ -284,9 +322,72 @@ void TrainModel (const SfDataSet& training_data, SfWeightVector* w) {
   PrintElapsedTime(train_start, "Time to complete training: ");
 }
 
+void BinaryPredictions(SfDataSet& test_data, SfWeightVector* w) {
+    vector<float> predictions;
+    clock_t predict_start = clock();
+    if (CMD_LINE_STRINGS["--prediction_type"] == "linear")
+      sofia_ml::SvmPredictionsOnTestSet(test_data, *w, &predictions);
+    else if (CMD_LINE_STRINGS["--prediction_type"] == "logistic")
+      sofia_ml::LogisticPredictionsOnTestSet(test_data, *w, &predictions);
+    else {
+      std::cerr << "--prediction " << CMD_LINE_STRINGS["--prediction_type"]
+		<< " not supported.";
+      exit(0);
+    }
+
+    PrintElapsedTime(predict_start, "Time to make test prediction results: ");
+
+    std::fstream prediction_stream;
+    prediction_stream.open(CMD_LINE_STRINGS["--results_file"].c_str(),
+			   std::fstream::out);
+    if (!prediction_stream) {
+      std::cerr << "Error opening test results output file "
+		<< CMD_LINE_STRINGS["--results_file"] << std::endl;
+      exit(1);
+    }
+    std::cerr << "Writing test results to: "
+	      << CMD_LINE_STRINGS["--results_file"] << std::endl;
+    for (unsigned int i = 0; i < predictions.size(); ++i) {
+      prediction_stream << predictions[i] << "\t"
+			<< test_data.VectorAt(i).GetY() << std::endl;
+    }
+    prediction_stream.close();
+}
+
+void MultiLabelPredictions(SfDataSet& test_data, SfMultiLabelWeightVector* w) {
+    vector< vector<float> > predictions;
+    clock_t predict_start = clock();
+
+    for (int i=0; i < test_data.NumExamples(); ++i) {
+      predictions.push_back(w->InnerProductAll(test_data.VectorAt(i)));
+    }
+
+    PrintElapsedTime(predict_start, "Time to make test prediction results: ");
+
+    std::fstream prediction_stream;
+    prediction_stream.open(CMD_LINE_STRINGS["--results_file"].c_str(),
+			   std::fstream::out);
+    if (!prediction_stream) {
+      std::cerr << "Error opening test results output file "
+		<< CMD_LINE_STRINGS["--results_file"] << std::endl;
+      exit(1);
+    }
+    std::cerr << "Writing test results to: "
+	      << CMD_LINE_STRINGS["--results_file"] << std::endl;
+    for (unsigned int i = 0; i < predictions.size(); ++i) {
+      for (unsigned int j = 0; j < predictions[i].size(); ++j) {
+        prediction_stream << predictions[i][j];
+        if (j != predictions[i].size() - 1)
+          prediction_stream << ",";
+      }
+      prediction_stream << "\t" << test_data.VectorAt(i).GetY() << std::endl;
+    }
+    prediction_stream.close();
+}
+
 int main (int argc, char** argv) {
   CommandLine(argc, argv);
-  
+
   if (CMD_LINE_INTS["--random_seed"] == 0) {
     srand(time(NULL));
   } else {
@@ -296,26 +397,36 @@ int main (int argc, char** argv) {
 
   // Set up empty model with specified dimensionality.
   SfWeightVector* w  = NULL;
-  if (CMD_LINE_INTS["--hash_mask_bits"] == 0) {
-    w = new SfWeightVector(CMD_LINE_INTS["--dimensionality"]);
-  } else {
-    w = new SfHashWeightVector(CMD_LINE_INTS["--hash_mask_bits"]);
-  }
 
-  // Load model (overwriting empty model), if needed.
-  if (!CMD_LINE_STRINGS["--model_in"].empty()) {
-    LoadModelFromFile(CMD_LINE_STRINGS["--model_in"], &w); 
-  }
-  
+
   // Train model, if needed.
   if (!CMD_LINE_STRINGS["--training_file"].empty()) {
-    std::cerr << "Reading training data from: " 
+
+
+    // Load data first
+    std::cerr << "Reading training data from: "
 	      << CMD_LINE_STRINGS["--training_file"] << std::endl;
     clock_t read_data_start = clock();
     SfDataSet training_data(CMD_LINE_STRINGS["--training_file"],
 			    CMD_LINE_INTS["--buffer_mb"],
 			    !CMD_LINE_BOOLS["--no_bias_term"]);
     PrintElapsedTime(read_data_start, "Time to read training data: ");
+
+    int dim = CMD_LINE_INTS["--dimensionality"];
+    if (dim == 0)
+      dim = training_data.MaxDimensions();
+
+    // Create empty weight vector
+    if (CMD_LINE_STRINGS["--loop_type"] == "stochastic-multi-label" ||
+        CMD_LINE_STRINGS["--loop_type"] == "multiple-passes-multi-label") {
+      w = new SfMultiLabelWeightVector(dim,
+                                       static_cast<int>(training_data.MaxY()));
+    }
+    else if (CMD_LINE_INTS["--hash_mask_bits"] == 0) {
+      w = new SfWeightVector(dim);
+    } else {
+      w = new SfHashWeightVector(CMD_LINE_INTS["--hash_mask_bits"]);
+    }
 
     TrainModel(training_data, w);
 
@@ -332,51 +443,35 @@ int main (int argc, char** argv) {
 		<< objective << std::endl;
     }
   }
+  else if (!CMD_LINE_STRINGS["--model_in"].empty()) {
+    // Load model if needed
+    w = LoadModelFromFile(CMD_LINE_STRINGS["--model_in"]);
+  }
+  else {
+    std::cerr << "You need at least a training file or a model to load!";
+    exit(1);
+  }
 
   // Save model, if needed.
   if (!CMD_LINE_STRINGS["--model_out"].empty()) {
     SaveModelToFile(CMD_LINE_STRINGS["--model_out"], w);
   }
-    
+
   // Test model on test data, if needed.
   if (!CMD_LINE_STRINGS["--test_file"].empty()) {
-    std::cerr << "Reading test data from: " 
+    std::cerr << "Reading test data from: "
 	      << CMD_LINE_STRINGS["--test_file"] << std::endl;
     clock_t read_data_start = clock();
     SfDataSet test_data(CMD_LINE_STRINGS["--test_file"],
 			CMD_LINE_INTS["--buffer_mb"],
 			!CMD_LINE_BOOLS["--no_bias_term"]);
     PrintElapsedTime(read_data_start, "Time to read test data: ");
-    
-    vector<float> predictions;
-    clock_t predict_start = clock();
-    if (CMD_LINE_STRINGS["--prediction_type"] == "linear")
-      sofia_ml::SvmPredictionsOnTestSet(test_data, *w, &predictions);
-    else if (CMD_LINE_STRINGS["--prediction_type"] == "logistic")
-      sofia_ml::LogisticPredictionsOnTestSet(test_data, *w, &predictions);
-    else {
-      std::cerr << "--prediction " << CMD_LINE_STRINGS["--prediction_type"]
-		<< " not supported.";
-      exit(0);
-    }
 
-    PrintElapsedTime(predict_start, "Time to make test prediction results: ");
-    
-    std::fstream prediction_stream;
-    prediction_stream.open(CMD_LINE_STRINGS["--results_file"].c_str(),
-			   std::fstream::out);
-    if (!prediction_stream) {
-      std::cerr << "Error opening test results output file " 
-		<< CMD_LINE_STRINGS["--results_file"] << std::endl;
-      exit(1);
-    }
-    std::cerr << "Writing test results to: "
-	      << CMD_LINE_STRINGS["--results_file"] << std::endl;
-    for (unsigned int i = 0; i < predictions.size(); ++i) {
-      prediction_stream << predictions[i] << "\t" 
-			<< test_data.VectorAt(i).GetY() << std::endl;
-    }
-    prediction_stream.close();
+    if (CMD_LINE_STRINGS["--prediction_type"] == "multi-label")
+      MultiLabelPredictions(test_data, static_cast<SfMultiLabelWeightVector*>(w));
+    else
+      BinaryPredictions(test_data, w);
+
     std::cerr << "   Done." << std::endl;
   }
 }
