@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -23,7 +23,7 @@
 //
 // Commandline flags are declared with the AddFlag method.
 // ParseFlags(argc, argv) parses the commandline flags.
-// 
+//
 // Flag values are stored in the following global maps:
 //   CMD_LINE_BOOLS
 //   CMD_LINE_FLOATS
@@ -33,7 +33,7 @@
 // Descriptions of each flag are stored in the maps:
 //   CMD_LINE_DESCRIPTIONS
 //
-// The ShowHelp() method prints a description of each commandline flag, and exits. 
+// The ShowHelp() method prints a description of each commandline flag, and exits.
 //
 // Example useage:
 /*
@@ -65,6 +65,8 @@ int main (int argc, char** argv) {
 #include <map>
 #include <sstream>
 #include <string>
+#include <cstdlib>
+#include <cstdio>
 
 using std::map;
 using std::string;
@@ -145,7 +147,7 @@ bool ParseGeneralFlag(int argc,
 		      char** argv,
 		      int* i) {
   if (CMD_LINE_FLOATS.find(argv[*i]) != CMD_LINE_FLOATS.end() ||
-      CMD_LINE_INTS.find(argv[*i]) != CMD_LINE_INTS.end() ||      
+      CMD_LINE_INTS.find(argv[*i]) != CMD_LINE_INTS.end() ||
       CMD_LINE_STRINGS.find(argv[*i]) != CMD_LINE_STRINGS.end()) {
     if (*i + 1 >= argc || (argv[*i + 1])[0] == '-') {
       std::cerr << "Error.  " << argv[*i] << " needs a value, but is given none."
@@ -153,7 +155,7 @@ bool ParseGeneralFlag(int argc,
       exit(1);
     }
     std::stringstream arg_stream(argv[(*i + 1)]);
-        
+
     if (CMD_LINE_FLOATS.find(argv[*i]) != CMD_LINE_FLOATS.end()) {
       float value;
       arg_stream >> value;
@@ -177,7 +179,7 @@ bool ParseGeneralFlag(int argc,
       *i += 2;
       return true;
     }
-  }    
+  }
   return false;
 }
 
@@ -191,7 +193,7 @@ void ParseFlags(int argc, char** argv) {
     good_parse = good_parse || ParseGeneralFlag(argc, argv, &i);
     if (!good_parse) {
       std::cerr << "Error. " << argv[i] << " is not a valid flag." << std::endl;
-      exit(1);	
+      exit(1);
     }
   }
 }
