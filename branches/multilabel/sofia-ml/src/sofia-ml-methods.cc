@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -16,8 +16,12 @@
 //
 // sofia-ml-methods.cc
 //
-// Author: D. Sculley
+// Authors:
+// D. Sculley
 // dsculley@google.com or dsculley@cs.tufts.edu
+//
+// Mathieu Blondel (multi-label)
+// mathieu@mblondel.org
 //
 // Implementation of sofia-ml-methods.h
 
@@ -29,14 +33,15 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <float.h>
 
 // The MIN_SCALING_FACTOR is used to protect against combinations of
 // lambda * eta > 1.0, which will cause numerical problems for regularization
-// and PEGASOS projection.  
+// and PEGASOS projection.
 #define MIN_SCALING_FACTOR 0.0000001
 
 namespace sofia_ml {
-  
+
   // --------------------------------------------------- //
   //         Helper functions (Not exposed in API)
   // --------------------------------------------------- //
@@ -47,6 +52,16 @@ namespace sofia_ml {
 
   float RandFloat() {
     return static_cast<float>(rand()) / RAND_MAX;
+  }
+
+  template <class T>
+  void ShuffleVector(vector<T>& v) {
+    for (unsigned int i=0; i < v.size(); i++) {
+      T tmp = v[i];
+      int j = RandInt(v.size());
+      v[i] = v[j];
+      v[j] = tmp;
+    }
   }
 
   const SfSparseVector& RandomExample(const SfDataSet& data_set) {
@@ -76,7 +91,7 @@ namespace sofia_ml {
     std::cerr << "Error in GetEta, we should never get here." << std::endl;
     return 0;
   }
-  
+
   // --------------------------------------------------- //
   //            Stochastic Loop Strategy Functions
   // --------------------------------------------------- //
@@ -94,7 +109,25 @@ namespace sofia_ml {
       float eta = GetEta(eta_type, lambda, i);
       OneLearnerStep(learner_type, x, eta, c, lambda, w);
     }
-  }  
+  }
+
+  void StochasticMultiLabelOuterLoop(const SfDataSet& training_set,
+			   LearnerType learner_type,
+			   EtaType eta_type,
+			   float lambda,
+			   float c,
+			   int num_iters,
+			   SfMultiLabelWeightVector* w) {
+
+    float num_labels = static_cast<int>(training_set.MaxY());
+
+    for (int i = 1; i <= num_iters; ++i) {
+      int random_example = static_cast<int>(rand()) % training_set.NumExamples();
+      const SfSparseVector& x = training_set.VectorAt(random_example);
+      float eta = GetEta(eta_type, lambda, i);
+      OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, num_labels, w);
+    }
+  }
 
   void BalancedStochasticOuterLoop(const SfDataSet& training_set,
 				   LearnerType learner_type,
@@ -127,6 +160,62 @@ namespace sofia_ml {
 	training_set.VectorAt(negatives[RandInt(negatives.size())]);
       OneLearnerStep(learner_type, neg_x, eta, c, lambda, w);
     }
+  }
+
+  void MultiplePassOuterLoop(const SfDataSet& training_set,
+                             LearnerType learner_type,
+                             EtaType eta_type,
+                             float lambda,
+                             float c,
+                             int num_passes,
+                             SfWeightVector* w) {
+
+    // create a vector of example indices
+    vector<long int>indices(training_set.NumExamples());
+
+    for (int i=0; i < training_set.NumExamples(); i++)
+      indices[i] = i;
+
+    // and shuffle it
+    ShuffleVector(indices);
+
+    for (int t=0, i = 0; i < num_passes; ++i) {
+      for (unsigned int j = 0; j < indices.size(); ++j, ++t) {
+        const SfSparseVector& x = training_set.VectorAt(indices[j]);
+        float eta = GetEta(eta_type, lambda, t);
+        OneLearnerStep(learner_type, x, eta, c, lambda, w);
+      }
+    }
+
+  }
+
+  void MultiplePassMultiLabelOuterLoop(const SfDataSet& training_set,
+			   LearnerType learner_type,
+			   EtaType eta_type,
+			   float lambda,
+			   float c,
+			   int num_passes,
+			   SfMultiLabelWeightVector* w) {
+
+    float num_labels = static_cast<int>(training_set.MaxY());
+
+    // create a vector of example indices
+    vector<long int>indices(training_set.NumExamples());
+
+    for (int i=0; i < training_set.NumExamples(); i++)
+      indices[i] = i;
+
+    // and shuffle it
+    ShuffleVector(indices);
+
+    for (int t=0, i = 0; i < num_passes; ++i) {
+      for (unsigned int j = 0; j < indices.size(); ++j, ++t) {
+        const SfSparseVector& x = training_set.VectorAt(indices[j]);
+        float eta = GetEta(eta_type, lambda, t);
+        OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, num_labels, w);
+      }
+    }
+
   }
 
   void StochasticRocLoop(const SfDataSet& training_set,
@@ -194,11 +283,11 @@ namespace sofia_ml {
 	  static_cast<int>(rand()) % training_set.NumExamples();
 	const SfSparseVector& x = training_set.VectorAt(random_example);
 	float eta = GetEta(eta_type, lambda, i);
-	OneLearnerStep(learner_type, x, eta, c, lambda, w);      
+	OneLearnerStep(learner_type, x, eta, c, lambda, w);
       }
     }
   }
-  
+
   void StochasticClassificationAndRankLoop(const SfDataSet& training_set,
 					   LearnerType learner_type,
 					   EtaType eta_type,
@@ -214,7 +303,7 @@ namespace sofia_ml {
       group_id_y_to_index[group_id][training_set.VectorAt(i).GetY()].push_back(i);
       group_id_y_to_count[group_id] += 1;
     }
-    
+
     for (int i = 1; i <= num_iters; ++i) {
       if (RandFloat() < rank_step_probability) {
 	// Take a rank step.
@@ -233,7 +322,7 @@ namespace sofia_ml {
 	     iter++) {
 	  if (iter->first == a_y) continue;
 	  if (random_int < iter->second.size()) {
-	    const SfSparseVector& b = 
+	    const SfSparseVector& b =
 	      training_set.VectorAt((iter->second)[random_int]);
 	    float eta = GetEta(eta_type, lambda, i);
 	    OneLearnerRankStep(learner_type, a, b, eta, c, lambda, w);
@@ -266,7 +355,7 @@ namespace sofia_ml {
       group_id_y_to_index[group_id][training_set.VectorAt(i).GetY()].push_back(i);
       group_id_y_to_count[group_id] += 1;
     }
-    
+
     for (int i = 1; i <= num_iters; ++i) {
       const SfSparseVector& a = RandomExample(training_set);
       const string& group_id = a.GetGroupId();
@@ -282,7 +371,7 @@ namespace sofia_ml {
 	   iter++) {
 	if (iter->first == a_y) continue;
 	if (random_int < iter->second.size()) {
-	  const SfSparseVector& b = 
+	  const SfSparseVector& b =
 	    training_set.VectorAt((iter->second)[random_int]);
 	  float eta = GetEta(eta_type, lambda, i);
 	  OneLearnerRankStep(learner_type, a, b, eta, c, lambda, w);
@@ -338,7 +427,7 @@ namespace sofia_ml {
 	  break;
 	}
       }
-    } 
+    }
   }
 
   //------------------------------------------------------------------------------//
@@ -355,7 +444,7 @@ namespace sofia_ml {
     float p = w.InnerProduct(x);
     return exp(p) / (1.0 + exp(p));
   }
-  
+
   void SvmPredictionsOnTestSet(const SfDataSet& test_data,
 			       const SfWeightVector& w,
 			       vector<float>* predictions) {
@@ -385,7 +474,7 @@ namespace sofia_ml {
     float objective = w.GetSquaredNorm() * lambda / 2.0;
     for (int i = 0; i < data_set.NumExamples(); ++i) {
       float loss_i = 1.0 - (predictions[i] * data_set.VectorAt(i).GetY());
-      float incremental_loss = (loss_i < 0.0) ? 
+      float incremental_loss = (loss_i < 0.0) ?
 	0.0 : loss_i / data_set.NumExamples();
       objective += incremental_loss;
     }
@@ -395,7 +484,7 @@ namespace sofia_ml {
   // --------------------------------------------------- //
   //       Single Stochastic Step Strategy Methods
   // --------------------------------------------------- //
-  
+
   bool OneLearnerStep(LearnerType learner_type,
 		      const SfSparseVector& x,
 		      float eta,
@@ -419,6 +508,22 @@ namespace sofia_ml {
       return SingleSgdSvmStep(x, eta, lambda, w);
     case ROMMA:
       return SingleRommaStep(x, w);
+    default:
+      std::cerr << "Error: learner_type " << learner_type
+		<< " not supported." << std::endl;
+      exit(0);
+    }
+  }
+  bool OneLearnerMultiLabelStep(LearnerType learner_type,
+		      const SfSparseVector& x,
+		      float eta,
+		      float c,
+		      float lambda,
+          int num_labels,
+		      SfMultiLabelWeightVector* w) {
+    switch (learner_type) {
+    case PASSIVE_AGGRESSIVE:
+      return SinglePassiveAggressiveMultiLabelStep(x, lambda, c, num_labels, w);
     default:
       std::cerr << "Error: learner_type " << learner_type
 		<< " not supported." << std::endl;
@@ -460,17 +565,17 @@ namespace sofia_ml {
   // --------------------------------------------------- //
   //            Single Stochastic Step Functions
   // --------------------------------------------------- //
-  
+
   bool SinglePegasosStep(const SfSparseVector& x,
 			  float eta,
 			  float lambda,
 			  SfWeightVector* w) {
-    float p = x.GetY() * w->InnerProduct(x);    
+    float p = x.GetY() * w->InnerProduct(x);
 
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
     // If x has non-zero loss, perform gradient step in direction of x.
     if (p < 1.0 && x.GetY() != 0.0) {
-      w->AddVector(x, (eta * x.GetY())); 
+      w->AddVector(x, (eta * x.GetY()));
     }
 
     PegasosProjection(lambda, w);
@@ -482,7 +587,7 @@ namespace sofia_ml {
     float wx = w->InnerProduct(x);
     float p = x.GetY() * wx;
     const float kVerySmallNumber = 0.0000000001;
-    
+
     // If x has non-zero loss, perform gradient step in direction of x.
     if (p < 1.0 && x.GetY() != 0.0) {
       float xx = x.GetSquaredNorm();
@@ -496,7 +601,7 @@ namespace sofia_ml {
       // Avoid numerical problems caused by examples of extremely low magnitude.
       if (c >= 0.0) {
 	w->ScaleBy(c);
-	w->AddVector(x, d); 
+	w->AddVector(x, d);
       }
     }
 
@@ -507,12 +612,12 @@ namespace sofia_ml {
 			  float eta,
 			  float lambda,
 			  SfWeightVector* w) {
-    float p = x.GetY() * w->InnerProduct(x);    
+    float p = x.GetY() * w->InnerProduct(x);
 
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
     // If x has non-zero loss, perform gradient step in direction of x.
     if (p < 1.0 && x.GetY() != 0.0) {
-      w->AddVector(x, (eta * x.GetY())); 
+      w->AddVector(x, (eta * x.GetY()));
     }
 
     return (p < 1.0 && x.GetY() != 0.0);
@@ -536,7 +641,7 @@ namespace sofia_ml {
 			       SfWeightVector* w) {
     float loss = x.GetY() / (1 + exp(x.GetY() * w->InnerProduct(x)));
 
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
     w->AddVector(x, (eta * loss));
     PegasosProjection(lambda, w);
     return (true);
@@ -548,7 +653,7 @@ namespace sofia_ml {
 			SfWeightVector* w) {
     float loss = x.GetY() / (1 + exp(x.GetY() * w->InnerProduct(x)));
 
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
     w->AddVector(x, (eta * loss));
     return (true);
   }
@@ -558,7 +663,7 @@ namespace sofia_ml {
 				  float lambda,
 				  SfWeightVector* w) {
     float loss = x.GetY() - w->InnerProduct(x);
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
     w->AddVector(x, (eta * loss));
     PegasosProjection(lambda, w);
     return (true);
@@ -568,18 +673,80 @@ namespace sofia_ml {
 				   float lambda,
 				   float max_step,
 				   SfWeightVector* w) {
-    float p = 1 - (x.GetY() * w->InnerProduct(x));    
+    float p = 1 - (x.GetY() * w->InnerProduct(x));
     // If x has non-zero loss, perform gradient step in direction of x.
     if (p > 0.0 && x.GetY() != 0.0) {
       float step = p / x.GetSquaredNorm();
       if (step > max_step) step = max_step;
-      w->AddVector(x, (step * x.GetY())); 
+      w->AddVector(x, (step * x.GetY()));
     }
 
     if (lambda > 0.0) {
       PegasosProjection(lambda, w);
     }
     return (p < 1.0 && x.GetY() != 0.0);
+  }
+
+  bool SinglePassiveAggressiveMultiLabelStep(const SfSparseVector& x,
+           float lambda,
+           float max_step,
+           int num_labels,
+           SfMultiLabelWeightVector* w) {
+
+    // this learner learns how to rank labels
+    // (relevant labels should be ranked higher than irrelevant labels)
+
+    float min_relevant_score = FLT_MAX;
+    float max_irrelevant_score = FLT_MIN;
+    int min_relevant_label = 0;
+    int max_irrelevant_label = 0;
+    float score;
+
+    // relevant labels (irrelevant labels are those which are not in this vector)
+    const vector<float>labels = x.GetYVector();
+
+    // The following is an efficient way to compute
+    // the score of each possible label and determine
+    // the lowest scoring label among relevant labels
+    // and the highest scoring label among the irrelevant
+    // labels. However, it assumes that the labels returned by
+    // GetYVector are sorted.
+    unsigned int j = 0;
+    for (int i = 0; i < num_labels; ++i) {
+      score = w->InnerProductLabel(x, i);
+      if (j < labels.size() && labels[j] - 1 == i) { // labels start at 1
+        // the currently considered label is relevant
+        if (score < min_relevant_score) {
+          min_relevant_score = score;
+          min_relevant_label = i;
+        }
+        ++j; // move to the next relevant label
+      }
+      else {
+        // the currently considered label is irrelevant
+        if (score > max_irrelevant_score) {
+          max_irrelevant_score = score;
+          max_irrelevant_label = i;
+        }
+      }
+    }
+
+    // the multi-label margin is an extension of the binary margin
+    // and is defined as the difference between the least confident
+    // relevant label and the most confident irrelevant label.
+    float margin = min_relevant_score - max_irrelevant_score;
+    float p = 1 - margin;
+
+    if (p > 0) {
+      float step = p / (2 * x.GetSquaredNorm());
+      if (step > max_step) step = max_step;
+      w->SelectLabel(min_relevant_label);
+      w->AddVector(x, step);
+      w->SelectLabel(max_irrelevant_label);
+      w->AddVector(x, -step);
+    }
+
+    return false;
   }
 
   bool SinglePassiveAggressiveRankStep(const SfSparseVector& a,
@@ -589,7 +756,7 @@ namespace sofia_ml {
 				       SfWeightVector* w) {
     float y = (a.GetY() > b.GetY()) ? 1.0 :
       (a.GetY() < b.GetY()) ? -1.0 : 0.0;
-    float p = 1 - (y * w->InnerProductOnDifference(a, b)); 
+    float p = 1 - (y * w->InnerProductOnDifference(a, b));
     // If (a-b) has non-zero loss, perform gradient step in direction of x.
     if (p > 0.0 && y != 0.0) {
       // Compute squared norm of (a-b).
@@ -613,8 +780,8 @@ namespace sofia_ml {
       }
       float step = p / squared_norm;
       if (step > max_step) step = max_step;
-      w->AddVector(a, (step * y)); 
-      w->AddVector(b, (step * y * -1.0)); 
+      w->AddVector(a, (step * y));
+      w->AddVector(b, (step * y * -1.0));
     }
 
     if (lambda > 0.0) {
@@ -634,7 +801,7 @@ namespace sofia_ml {
 
     L2Regularize(eta, lambda, w);
 
-    // If (a - b) has non-zero loss, perform gradient step.         
+    // If (a - b) has non-zero loss, perform gradient step.
     if (p < 1.0 && y != 0.0) {
       w->AddVector(a, (eta * y));
       w->AddVector(b, (-1.0 * eta * y));
@@ -655,7 +822,7 @@ namespace sofia_ml {
 
     L2Regularize(eta, lambda, w);
 
-    // If (a - b) has non-zero loss, perform gradient step.         
+    // If (a - b) has non-zero loss, perform gradient step.
     if (p < 1.0 && y != 0.0) {
       w->AddVector(a, (eta * y));
       w->AddVector(b, (-1.0 * eta * y));
@@ -702,7 +869,7 @@ namespace sofia_ml {
     float y = (a.GetY() > b.GetY()) ? 1.0 :
       (a.GetY() < b.GetY()) ? -1.0 : 0.0;
     float loss = y / (1 + exp(y * w->InnerProductOnDifference(a, b)));
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
 
     w->AddVector(a, (eta * loss));
     w->AddVector(b, (-1.0 * eta * loss));
@@ -719,7 +886,7 @@ namespace sofia_ml {
     float y = (a.GetY() > b.GetY()) ? 1.0 :
       (a.GetY() < b.GetY()) ? -1.0 : 0.0;
     float loss = y / (1 + exp(y * w->InnerProductOnDifference(a, b)));
-    L2Regularize(eta, lambda, w);    
+    L2Regularize(eta, lambda, w);
 
     w->AddVector(a, (eta * loss));
     w->AddVector(b, (-1.0 * eta * loss));
@@ -756,7 +923,7 @@ namespace sofia_ml {
 
     L2Regularize(eta, lambda, w);
 
-    // If (rank_a - rank_b) has non-zero loss, perform gradient step.         
+    // If (rank_a - rank_b) has non-zero loss, perform gradient step.
     if (rank_p < 1.0 && rank_y != 0.0) {
       w->AddVector(rank_a, (eta * rank_y));
       w->AddVector(rank_b, (-1.0 * eta * rank_y));
@@ -776,9 +943,9 @@ namespace sofia_ml {
   void L2Regularize(float eta, float lambda, SfWeightVector* w) {
     float scaling_factor = 1.0 - (eta * lambda);
     if (scaling_factor > MIN_SCALING_FACTOR) {
-      w->ScaleBy(1.0 - (eta * lambda));  
+      w->ScaleBy(1.0 - (eta * lambda));
     } else {
-      w->ScaleBy(MIN_SCALING_FACTOR); 
+      w->ScaleBy(MIN_SCALING_FACTOR);
     }
   }
 
@@ -789,18 +956,18 @@ namespace sofia_ml {
     float scaling_factor = 1.0 - (eta * lambda);
     scaling_factor = pow(scaling_factor, effective_steps);
     if (scaling_factor > MIN_SCALING_FACTOR) {
-      w->ScaleBy(1.0 - (eta * lambda));  
+      w->ScaleBy(1.0 - (eta * lambda));
     } else {
-      w->ScaleBy(MIN_SCALING_FACTOR); 
+      w->ScaleBy(MIN_SCALING_FACTOR);
     }
   }
-  
+
   void PegasosProjection(float lambda, SfWeightVector* w) {
     float projection_val = 1 / sqrt(lambda * w->GetSquaredNorm());
     if (projection_val < 1.0) {
       w->ScaleBy(projection_val);
     }
   }
-  
+
 }  // namespace sofia_ml
-  
+

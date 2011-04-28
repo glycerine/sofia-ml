@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -82,11 +82,12 @@ class SfSparseVector {
   inline float ValueAt(int i) const { return features_[i].value_; }
 
   // Getters and setters.
-  void SetY(float new_y) { y_ = new_y; }
+  void SetY(float new_y) { if(y_.size() >= 1) y_[0] = new_y; else y_.push_back(new_y); }
   void SetA(float new_a) { a_ = new_a; }
   void SetGroupId(const string& new_id) { group_id_ = new_id; }
   void SetComment(const string& new_comment) { comment_ = new_comment; }
-  float GetY() const { return y_; }
+  float GetY() const { return y_[0]; }
+  const vector<float>& GetYVector() const { return y_; }
   float GetA() const { return a_; }
   float GetSquaredNorm() const { return squared_norm_; }
   const string& GetGroupId() const { return group_id_; }
@@ -122,9 +123,11 @@ class SfSparseVector {
   // special feature id 0 is always set to 1, encoding bias.
   vector<FeatureValuePair> features_;
 
-  // y_ is the class label.  We store this as a float, rather than an int,
-  // so that this class may be used for regression problems, etc., if desired.
-  float y_;
+  // y_ contains the example's labels.
+  // We store this as floats, rather than ints,
+  // so that this may be used for regression problems, etc., if desired.
+  // In the single label case, the vector is of size 1.
+  vector<float> y_;
 
   // a_ is the current alpha value in optimization.
   float a_;

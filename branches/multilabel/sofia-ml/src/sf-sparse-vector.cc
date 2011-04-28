@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -28,8 +28,7 @@
 //---------------- SfSparseVector Public Methods ----------------//
 //----------------------------------------------------------------//
 SfSparseVector::SfSparseVector(const char* in_string)
-  : y_(0.0), 
-    a_(0.0),
+  : a_(0.0),
     squared_norm_(0.0),
     group_id_("") {
   NoBias();
@@ -38,8 +37,7 @@ SfSparseVector::SfSparseVector(const char* in_string)
 
 SfSparseVector::SfSparseVector(const char* in_string,
 			       bool use_bias_term)
-  : y_(0.0), 
-    a_(0.0),
+  : a_(0.0),
     squared_norm_(0.0),
     group_id_("") {
   if (use_bias_term) {
@@ -52,10 +50,10 @@ SfSparseVector::SfSparseVector(const char* in_string,
 
 SfSparseVector::SfSparseVector(const SfSparseVector& a,
 				 const SfSparseVector& b,
-				 float y) 
-  : y_(y),
-    a_(0.0),
+				 float y)
+  : a_(0.0),
     squared_norm_(0.0) {
+  y_.push_back(y);
   group_id_ = a.GetGroupId();
   int a_i = 0;
   int b_i = 0;
@@ -93,7 +91,15 @@ SfSparseVector::SfSparseVector(const SfSparseVector& a,
 
 string SfSparseVector::AsString() const {
   std::stringstream out_stream;
-  out_stream << y_ << " ";
+
+  for (unsigned int i = 0; i < y_.size(); i++) {
+    out_stream << y_[i];
+    if (i != y_.size() - 1)
+      out_stream << ",";
+  }
+
+  out_stream << " ";
+
   for (int i = 0; i < NumFeatures(); ++i) {
     out_stream << FeatureAt(i) << ":" << ValueAt(i) << " ";
   }
@@ -128,37 +134,52 @@ void SfSparseVector::DieFormat(const string& reason) {
 void SfSparseVector::Init(const char* in_string) {
   int length = strlen(in_string);
   if (length == 0) DieFormat("Empty example string.");
- 
-  // Get class label.
-  if (!sscanf(in_string, "%f", &y_))
-    DieFormat("Class label must be real number.");
+
+  float y = 0;
+
+  const char* position = in_string;
+  const char* position_space = strchr(position, ' ');
+
+  // Get class labels (comma-separated list).
+  while (true) {
+    if (!sscanf(position, "%f", &y))
+      DieFormat("Class label must be real number.");
+
+    y_.push_back(y);
+
+    const char* position_comma = strchr(position, ',');
+
+    if (position_comma == NULL or position_comma > position_space)
+      // no further labels
+      break;
+
+    position = position_comma + 1;
+  }
 
   // Parse the group id, if any.
-  const char* position;
-  position = strchr(in_string, ' ') + 1;
+  position = position_space + 1;
+
   if ((position[0] >= 'a' && position[0] <= 'z') ||
       (position[0] >= 'A' && position[0] <= 'Z')) {
     position = strchr(position, ':') + 1;
     const char* end = strchr(position, ' ');
-    char group_id_c_string[1000];
-    strncpy(group_id_c_string, position, end - position);
-    group_id_ = group_id_c_string;
+    group_id_ = string(position, 0, end - position);
     position = end + 1;
-  } 
+  }
 
   // Get feature:value pairs.
   for ( ;
-       (position < in_string + length 
+       (position < in_string + length
 	&& position - 1 != NULL
 	&& position[0] != '#');
        position = strchr(position, ' ') + 1) {
-    
+
     // Consume multiple spaces, if needed.
     if (position[0] == ' ' || position[0] == '\n' ||
 	position[0] == '\v' || position[0] == '\r') {
       continue;
     };
-    
+
     // Parse the feature-value pair.
     int id = atoi(position);
     position = strchr(position, ':') + 1;

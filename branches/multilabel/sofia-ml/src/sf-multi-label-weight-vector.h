@@ -1,3 +1,4 @@
+
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
 //                                                                                //
@@ -14,44 +15,35 @@
 // limitations under the License.                                                 //
 //================================================================================//
 //
-// sf-weight-vector.h
+// sf-multi-label-vector.h
 //
-// Author: D. Sculley
-// dsculley@google.com or dsculley@cs.tufts.edu
+// Author: Mathieu Blondel
+// mathieu@mblondel.org
 //
-// A simple weight vector class used for training and classification
-// with SfSaprseVector instances.  The dimensionality d of the data
-// set must be specified at construction time, as the internal
-// data is kept in a contiguous array for data concurrency.
-//
-// Note that the weight vector is composed of feature value pairs,
-// and a scaling parameter scale_.  This scaling parameter allows for
-// fast L2-norm regularization.
-//
-// The squared_norm_ member maintains the squared norm on all updates.
+// A subclass of SfWeightVector that knows how to handle multiple labels.
 
-#ifndef SF_WEIGHT_VECTOR_H__
-#define SF_WEIGHT_VECTOR_H__
+#ifndef SF_MULTI_LABEL_WEIGHT_VECTOR_H__
+#define SF_MULTI_LABEL_WEIGHT_VECTOR_H__
 
-#include "sf-sparse-vector.h"
+#include <vector>
+
+#include "sf-weight-vector.h"
 
 using std::string;
 
-class SfWeightVector {
+class SfMultiLabelWeightVector : public SfWeightVector {
  public:
-  // Construct a weight vector of dimenson d, with all weights initialized to
-  // zero, scale_ set to 1, and squared_norm_ set to 0.
-  SfWeightVector(int dimensionality);
+  SfMultiLabelWeightVector(int dimensionality, int num_labels);
 
   // Constructs a weight vector from a string, which is identical in format
   // to that produced by the AsString() member method.
-  SfWeightVector(const string& weight_vector_string);
-
-  // Simple copy constructor, needed to allocate a new array of weights.
-  SfWeightVector(const SfWeightVector& weight_vector);
+  SfMultiLabelWeightVector(const string& weight_vector_string);
 
   // Frees the array of weights.
-  virtual ~SfWeightVector();
+  virtual ~SfMultiLabelWeightVector();
+
+  // Label selector
+  void SelectLabel(int label_id) { selected_vector_ = label_id; }
 
   // Re-scales weight vector to scale of 1, and then outputs each weight in
   // order, space separated.
@@ -61,8 +53,17 @@ class SfWeightVector {
   virtual float InnerProduct(const SfSparseVector& x,
 			     float x_scale = 1.0) const;
 
+  // Computes inner product with a specified label vector.
+  virtual float InnerProductLabel(const SfSparseVector& x,
+           int label_id,
+			     float x_scale = 1.0) const;
+
+  // Computes the inner products with all (internal) weight vectors
+  vector<float> InnerProductAll(const SfSparseVector& x,
+                                float x_scale=1.0) const;
+
   // Computes inner product of <x_scale * (a - b), w>
-  float InnerProductOnDifference(const SfSparseVector& a,
+  virtual float InnerProductOnDifference(const SfSparseVector& a,
 				 const SfSparseVector& b,
 				 float x_scale = 1.0) const;
 
@@ -83,20 +84,14 @@ class SfWeightVector {
   virtual void ProjectToL1Ball(float lambda, float epsilon);
 
   // Getters.
-  virtual double GetSquaredNorm() const { return squared_norm_; }
-  virtual int GetDimensions() const { return dimensions_; }
-
- protected:
-  void ScaleToOne();
-
-  float* weights_;
-  double scale_;
-  double squared_norm_;
-  int dimensions_;
+  virtual double GetSquaredNorm() const;
+  virtual int GetDimensions() const;
+  int NumLabels() const { return vectors_.size();}
 
  private:
-  // Disallowed.
-  SfWeightVector();
+  int num_labels_;
+  int selected_vector_;
+  vector<SfWeightVector>vectors_;
 };
 
-#endif
+#endif  // SF_MULTI_LABEL_WEIGHT_VECTOR_H__

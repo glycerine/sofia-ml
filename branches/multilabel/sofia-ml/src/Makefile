@@ -22,7 +22,9 @@ GCC= g++ -O3 -lm -Wall
 
 # Primary executable binary.
 sofia-ml:
-	$(GCC) -o sofia-ml sofia-ml.cc sofia-ml-methods.cc sf-weight-vector.cc sf-sparse-vector.cc sf-data-set.cc sf-hash-weight-vector.cc sf-hash-inline.cc
+	$(GCC) -o sofia-ml sofia-ml.cc sofia-ml-methods.cc sf-weight-vector.cc \
+		sf-sparse-vector.cc sf-data-set.cc sf-hash-weight-vector.cc \
+		sf-hash-inline.cc sf-multi-label-weight-vector.cc
 	cp sofia-ml ..
 
 # Build and execute all unit tests.
@@ -36,6 +38,7 @@ clean:
 	rm -f sf-data-set_test
 	rm -f sf-hash-inline_test
 	rm -f sf-weight-vector_test
+	rm -f sf-multi-label-weight-vector_test
 	rm -f simple-cmd-line-helper_test
 	rm -f sofia-ml-methods_test
 
@@ -58,6 +61,10 @@ sf-hash-inline_test:
 sf-weight-vector_test:
 	$(GCC) -o sf-weight-vector_test sf-weight-vector_test.cc sf-weight-vector.cc sf-sparse-vector.cc
 	./sf-weight-vector_test
+
+sf-multi-label-weight-vector_test:
+	$(GCC) -o sf-multi-label-weight-vector_test sf-multi-label-weight-vector_test.cc sf-multi-label-weight-vector.cc sf-weight-vector.cc sf-sparse-vector.cc
+	./sf-multi-label-weight-vector_test
 
 simple-cmd-line-helper_test:
 	$(GCC) -o simple-cmd-line-helper_test simple-cmd-line-helper_test.cc

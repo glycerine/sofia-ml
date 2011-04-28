@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -34,6 +34,9 @@ int main (int argc, char** argv) {
   assert(data_set2.VectorAt(0).FeatureAt(0) == 0);
   assert(data_set2.VectorAt(0).ValueAt(0) == 0);
   assert(data_set2.VectorAt(1).GetY() == -1);
+
+  assert(data_set2.MaxY() == 1);
+  assert(data_set2.MaxDimensions() == 4);
 
   std::cout << argv[0] << ": PASS" << std::endl;
 }

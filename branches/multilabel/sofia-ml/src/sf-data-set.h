@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -43,9 +43,16 @@ class SfDataSet {
 
   // Debug string.
   string AsString() const;
-  
+
   // Number of total examples in data set.
   long int NumExamples() const { return vectors_.size(); }
+
+  // Return the maximum value taken by labels, i.e. the label set cardinality
+  // in the classification case
+  float MaxY() const;
+
+  // Return the maximum dimension found in the dataset
+  int MaxDimensions() const;
 
   // Returns a reference to the specified vector.
   const SfSparseVector& VectorAt (long int index) const;

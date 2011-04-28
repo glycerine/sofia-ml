@@ -1,6 +1,6 @@
 //================================================================================//
 // Copyright 2009 Google Inc.                                                     //
-//                                                                                // 
+//                                                                                //
 // Licensed under the Apache License, Version 2.0 (the "License");                //
 // you may not use this file except in compliance with the License.               //
 // You may obtain a copy of the License at                                        //
@@ -96,6 +96,24 @@ int main (int argc, char** argv) {
   assert(x8.ValueAt(2) == -2);
   assert(x8.FeatureAt(2) == 4);
   assert(x8.GetGroupId() == "");
+  assert(x8.AsString() == "1 0:0 2:2.5 4:-2 ");
+
+  // Test vector string with multiple labels
+  char x9_string [100] = "1.0,3.0,4.0 2:2.5 4:-2\n";
+  SfSparseVector x9(x9_string, false);
+  assert(x9.GetSquaredNorm() == 10.25);
+  assert(x9.GetY() == 1.0);
+  assert(x9.ValueAt(0) == 0);
+  assert(x9.FeatureAt(0) == 0);
+  assert(x9.ValueAt(2) == -2);
+  assert(x9.FeatureAt(2) == 4);
+  assert(x9.GetGroupId() == "");
+  vector<float>y_vector = x9.GetYVector();
+  assert(y_vector.size() == 3);
+  assert(y_vector[0] == 1.0);
+  assert(y_vector[1] == 3.0);
+  assert(y_vector[2] == 4.0);
+  assert(x9.AsString() == "1,3,4 0:0 2:2.5 4:-2 ");
 
   std::cout << argv[0] << ": PASS" << std::endl;
 }
