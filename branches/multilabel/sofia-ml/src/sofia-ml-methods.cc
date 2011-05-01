@@ -119,7 +119,7 @@ namespace sofia_ml {
 			   int num_iters,
 			   SfMultiLabelWeightVector* w) {
 
-    float num_labels = static_cast<int>(training_set.MaxY());
+    int num_labels = static_cast<int>(training_set.MaxY());
 
     for (int i = 1; i <= num_iters; ++i) {
       int random_example = static_cast<int>(rand()) % training_set.NumExamples();
@@ -703,7 +703,7 @@ namespace sofia_ml {
     float score;
 
     // relevant labels (irrelevant labels are those which are not in this vector)
-    const vector<float>labels = x.GetYVector();
+    const vector<float>& labels = x.GetYVector();
 
     // The following is an efficient way to compute
     // the score of each possible label and determine
