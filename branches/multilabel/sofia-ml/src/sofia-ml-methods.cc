@@ -524,6 +524,8 @@ namespace sofia_ml {
     switch (learner_type) {
     case PASSIVE_AGGRESSIVE:
       return SinglePassiveAggressiveMultiLabelStep(x, lambda, c, num_labels, w);
+    case LOGREG:
+      return SingleLogRegMultiLabelStep(x, lambda, eta, num_labels, w);
     default:
       std::cerr << "Error: learner_type " << learner_type
 		<< " not supported." << std::endl;
@@ -656,6 +658,60 @@ namespace sofia_ml {
     L2Regularize(eta, lambda, w);
     w->AddVector(x, (eta * loss));
     return (true);
+  }
+
+  bool SingleLogRegMultiLabelStep(const SfSparseVector& x,
+           float lambda,
+           float eta,
+           int num_labels,
+           SfMultiLabelWeightVector* w) {
+
+    // compute the score of each label
+    float max_score = 0;
+    vector<float> scores(num_labels);
+
+    for (int i = 0; i < num_labels; ++i) {
+      scores[i] = w->InnerProductLabel(x, i);
+      if (scores[i] > max_score)
+        max_score = scores[i];
+    }
+
+    // compute the softmax function
+    // (probability of each label)
+    // taking care of underflows
+    float sum = 0;
+
+    for (int i = 0; i < num_labels; ++i) {
+      scores[i] = scores[i] - max_score;
+      if (scores[i] < -10) scores[i] = 0;
+      else scores[i] = expf(scores[i]);
+      sum += scores[i];
+    }
+
+    if (sum > 0) {
+      for (int i = 0; i < num_labels; ++i) {
+        scores[i] /= sum;
+      }
+    }
+
+    // relevant labels (irrelevant labels are those which are not in this vector)
+    const vector<float>& labels = x.GetYVector();
+
+    // add relevant labels
+    for (unsigned int i = 0; i < labels.size(); ++i) {
+      w->SelectLabel(labels[i] - 1); // labels start at 1
+      w->AddVector(x, eta);
+    }
+
+    // substract all labels weighted by their probability
+    // (label expectation)
+    for (int i = 0; i < num_labels; ++i) {
+      w->SelectLabel(i);
+      w->AddVector(x, -eta * scores[i]);
+      L2Regularize(-eta, lambda, w);
+    }
+
+    return true;
   }
 
   bool SingleLeastMeanSquaresStep(const SfSparseVector& x,
