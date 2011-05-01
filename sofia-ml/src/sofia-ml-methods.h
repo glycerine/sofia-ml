@@ -276,6 +276,14 @@ namespace sofia_ml {
 			float lambda,
 			SfWeightVector* w);
 
+  // Takes a single SGD step using the multinomial logistic loss
+  // (multinomial logistic regression a.k.a maxent).
+  bool SingleLogRegMultiLabelStep(const SfSparseVector& x,
+           float lambda,
+           float eta,
+           int num_labels,
+           SfMultiLabelWeightVector* w);
+
   // Takes a single PEGASOS step using least-mean-squares objective function
   // rather than hinge loss function (SVM loss).  Includes L2 regularization
   // and projection.  Always returns true, as updates are performed for all
