@@ -467,7 +467,7 @@ int main (int argc, char** argv) {
 			!CMD_LINE_BOOLS["--no_bias_term"]);
     PrintElapsedTime(read_data_start, "Time to read test data: ");
 
-    if (CMD_LINE_STRINGS["--prediction_type"] == "multi-label")
+    if (CMD_LINE_STRINGS["--prediction_type"] == "linear-multi-label")
       MultiLabelPredictions(test_data, static_cast<SfMultiLabelWeightVector*>(w));
     else
       BinaryPredictions(test_data, w);
