@@ -68,8 +68,8 @@ namespace sofia_ml {
   template <class T>
   void Softmax(vector<T>& scores) {
     // compute the softmax function taking care of underflows
-    float sum = 0;
-    float max_score = 0;
+    T sum = 0;
+    T max_score = 0;
     unsigned int i;
 
     for (i = 0; i < scores.size(); ++i)
@@ -88,6 +88,55 @@ namespace sofia_ml {
         scores[i] /= sum;
       }
     }
+  }
+
+  struct MarginLabels {
+    int min_relevant_label;
+    float min_relevant_score;
+    int max_irrelevant_label;
+    float max_irrelevant_score;
+  };
+
+  MarginLabels ComputeMarginLabels(const SfSparseVector& x,
+                                   SfMultiLabelWeightVector* w,
+                                   const vector<float>& labels,
+                                   int num_labels) {
+
+    MarginLabels res;
+
+    res.min_relevant_score = FLT_MAX;
+    res.max_irrelevant_score = FLT_MIN;
+    res.min_relevant_label = 0;
+    res.max_irrelevant_label = 0;
+    float score;
+
+    // The following is an efficient way to compute
+    // the score of each possible label and determine
+    // the lowest scoring label among relevant labels
+    // and the highest scoring label among the irrelevant
+    // labels. However, it assumes that the labels returned by
+    // GetYVector are sorted.
+    unsigned int j = 0;
+    for (int i = 0; i < num_labels; ++i) {
+      score = w->InnerProductLabel(x, i);
+      if (j < labels.size() && labels[j] - 1 == i) { // labels start at 1
+        // the currently considered label is relevant
+        if (score < res.min_relevant_score) {
+          res.min_relevant_score = score;
+          res.min_relevant_label = i;
+        }
+        ++j; // move to the next relevant label
+      }
+      else {
+        // the currently considered label is irrelevant
+        if (score > res.max_irrelevant_score) {
+          res.max_irrelevant_score = score;
+          res.max_irrelevant_label = i;
+        }
+      }
+    }
+
+    return res;
   }
 
   const SfSparseVector& RandomExample(const SfDataSet& data_set) {
@@ -546,7 +595,9 @@ namespace sofia_ml {
     case PASSIVE_AGGRESSIVE:
       return SinglePassiveAggressiveMultiLabelStep(x, c, w);
     case LOGREG:
-      return SingleLogRegMultiLabelStep(x, lambda, eta, w);
+      return SingleLogRegMultiLabelStep(x, eta, lambda, w);
+    case SGD_SVM:
+      return SingleSgdSvmMultiLabelStep(x, eta, lambda, w);
     default:
       std::cerr << "Error: learner_type " << learner_type
 		<< " not supported." << std::endl;
@@ -646,6 +697,29 @@ namespace sofia_ml {
     return (p < 1.0 && x.GetY() != 0.0);
   }
 
+  bool SingleSgdSvmMultiLabelStep(const SfSparseVector& x,
+                                  float eta,
+                                  float lambda,
+                                  SfMultiLabelWeightVector* w) {
+
+    int num_labels = w->NumLabels();
+
+    // relevant labels (irrelevant labels are those which are not in this vector)
+    const vector<float>& labels = x.GetYVector();
+
+    MarginLabels res = ComputeMarginLabels(x, w, labels, num_labels);
+
+    w->SelectLabel(res.min_relevant_label);
+    L2Regularize(eta, lambda, w);
+    w->AddVector(x, eta);
+
+    w->SelectLabel(res.max_irrelevant_label);
+    L2Regularize(eta, lambda, w);
+    w->AddVector(x, -eta);
+
+    return true;
+  }
+
   bool SingleMarginPerceptronStep(const SfSparseVector& x,
 				  float eta,
 				  float c,
@@ -682,8 +756,8 @@ namespace sofia_ml {
   }
 
   bool SingleLogRegMultiLabelStep(const SfSparseVector& x,
-           float lambda,
            float eta,
+           float lambda,
            SfMultiLabelWeightVector* w) {
 
     int num_labels = w->NumLabels();
@@ -755,54 +829,25 @@ namespace sofia_ml {
     // this learner learns how to rank labels
     // (relevant labels should be ranked higher than irrelevant labels)
 
-    float min_relevant_score = FLT_MAX;
-    float max_irrelevant_score = FLT_MIN;
-    int min_relevant_label = 0;
-    int max_irrelevant_label = 0;
-    float score;
-
     // relevant labels (irrelevant labels are those which are not in this vector)
     const vector<float>& labels = x.GetYVector();
 
-    // The following is an efficient way to compute
-    // the score of each possible label and determine
-    // the lowest scoring label among relevant labels
-    // and the highest scoring label among the irrelevant
-    // labels. However, it assumes that the labels returned by
-    // GetYVector are sorted.
-    unsigned int j = 0;
-    for (int i = 0; i < num_labels; ++i) {
-      score = w->InnerProductLabel(x, i);
-      if (j < labels.size() && labels[j] - 1 == i) { // labels start at 1
-        // the currently considered label is relevant
-        if (score < min_relevant_score) {
-          min_relevant_score = score;
-          min_relevant_label = i;
-        }
-        ++j; // move to the next relevant label
-      }
-      else {
-        // the currently considered label is irrelevant
-        if (score > max_irrelevant_score) {
-          max_irrelevant_score = score;
-          max_irrelevant_label = i;
-        }
-      }
-    }
+    MarginLabels res = ComputeMarginLabels(x, w, labels, num_labels);
 
     // the multi-label margin is an extension of the binary margin
     // and is defined as the difference between the least confident
     // relevant label and the most confident irrelevant label.
-    float margin = min_relevant_score - max_irrelevant_score;
+    float margin = res.min_relevant_score - res.max_irrelevant_score;
     float p = 1 - margin;
 
     if (p > 0) {
       float step = p / (2 * x.GetSquaredNorm());
       if (step > max_step) step = max_step;
-      w->SelectLabel(min_relevant_label);
+      w->SelectLabel(res.min_relevant_label);
       w->AddVector(x, step);
-      w->SelectLabel(max_irrelevant_label);
+      w->SelectLabel(res.max_irrelevant_label);
       w->AddVector(x, -step);
+      return true;
     }
 
     return false;
