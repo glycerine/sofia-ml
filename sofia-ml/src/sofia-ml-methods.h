@@ -228,7 +228,6 @@ namespace sofia_ml {
 		      float eta,
 		      float c,
 		      float lambda,
-          int num_labels,
 		      SfMultiLabelWeightVector* w);
 
   // Takes one rank (a-b) step using the LearnerType defined by method, and returns true
@@ -281,7 +280,6 @@ namespace sofia_ml {
   bool SingleLogRegMultiLabelStep(const SfSparseVector& x,
            float lambda,
            float eta,
-           int num_labels,
            SfMultiLabelWeightVector* w);
 
   // Takes a single PEGASOS step using least-mean-squares objective function
@@ -382,9 +380,7 @@ namespace sofia_ml {
 				   SfWeightVector* w);
 
   bool SinglePassiveAggressiveMultiLabelStep(const SfSparseVector& x,
-				   float lambda,
 				   float max_step,
-           int num_labels,
 				   SfMultiLabelWeightVector* w);
 
   // Takes a single RANK step with Passive-Aggressive method including
