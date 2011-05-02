@@ -64,6 +64,32 @@ namespace sofia_ml {
     }
   }
 
+
+  template <class T>
+  void Softmax(vector<T>& scores) {
+    // compute the softmax function taking care of underflows
+    float sum = 0;
+    float max_score = 0;
+    unsigned int i;
+
+    for (i = 0; i < scores.size(); ++i)
+      if (scores[i] > max_score)
+        max_score = scores[i];
+
+    for (i = 0; i < scores.size(); ++i) {
+      scores[i] = scores[i] - max_score;
+      if (scores[i] < -10) scores[i] = 0;
+      else scores[i] = expf(scores[i]);
+      sum += scores[i];
+    }
+
+    if (sum > 0) {
+      for (i = 0; i < scores.size(); ++i) {
+        scores[i] /= sum;
+      }
+    }
+  }
+
   const SfSparseVector& RandomExample(const SfDataSet& data_set) {
     int num_examples = data_set.NumExamples();
     int i = static_cast<int>(rand()) % num_examples;
@@ -663,32 +689,13 @@ namespace sofia_ml {
     int num_labels = w->NumLabels();
 
     // compute the score of each label
-    float max_score = 0;
     vector<float> scores(num_labels);
 
     for (int i = 0; i < num_labels; ++i) {
       scores[i] = w->InnerProductLabel(x, i);
-      if (scores[i] > max_score)
-        max_score = scores[i];
     }
 
-    // compute the softmax function
-    // (probability of each label)
-    // taking care of underflows
-    float sum = 0;
-
-    for (int i = 0; i < num_labels; ++i) {
-      scores[i] = scores[i] - max_score;
-      if (scores[i] < -10) scores[i] = 0;
-      else scores[i] = expf(scores[i]);
-      sum += scores[i];
-    }
-
-    if (sum > 0) {
-      for (int i = 0; i < num_labels; ++i) {
-        scores[i] /= sum;
-      }
-    }
+    Softmax(scores);
 
     // relevant labels (irrelevant labels are those which are not in this vector)
     const vector<float>& labels = x.GetYVector();
