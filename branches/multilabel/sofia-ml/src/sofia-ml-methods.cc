@@ -119,13 +119,11 @@ namespace sofia_ml {
 			   int num_iters,
 			   SfMultiLabelWeightVector* w) {
 
-    int num_labels = static_cast<int>(training_set.MaxY());
-
     for (int i = 1; i <= num_iters; ++i) {
       int random_example = static_cast<int>(rand()) % training_set.NumExamples();
       const SfSparseVector& x = training_set.VectorAt(random_example);
       float eta = GetEta(eta_type, lambda, i);
-      OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, num_labels, w);
+      OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, w);
     }
   }
 
@@ -197,8 +195,6 @@ namespace sofia_ml {
 			   int num_passes,
 			   SfMultiLabelWeightVector* w) {
 
-    float num_labels = static_cast<int>(training_set.MaxY());
-
     // create a vector of example indices
     vector<long int>indices(training_set.NumExamples());
 
@@ -212,7 +208,7 @@ namespace sofia_ml {
       for (unsigned int j = 0; j < indices.size(); ++j, ++t) {
         const SfSparseVector& x = training_set.VectorAt(indices[j]);
         float eta = GetEta(eta_type, lambda, t);
-        OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, num_labels, w);
+        OneLearnerMultiLabelStep(learner_type, x, eta, c, lambda, w);
       }
     }
 
@@ -519,13 +515,12 @@ namespace sofia_ml {
 		      float eta,
 		      float c,
 		      float lambda,
-          int num_labels,
 		      SfMultiLabelWeightVector* w) {
     switch (learner_type) {
     case PASSIVE_AGGRESSIVE:
-      return SinglePassiveAggressiveMultiLabelStep(x, lambda, c, num_labels, w);
+      return SinglePassiveAggressiveMultiLabelStep(x, c, w);
     case LOGREG:
-      return SingleLogRegMultiLabelStep(x, lambda, eta, num_labels, w);
+      return SingleLogRegMultiLabelStep(x, lambda, eta, w);
     default:
       std::cerr << "Error: learner_type " << learner_type
 		<< " not supported." << std::endl;
@@ -663,8 +658,9 @@ namespace sofia_ml {
   bool SingleLogRegMultiLabelStep(const SfSparseVector& x,
            float lambda,
            float eta,
-           int num_labels,
            SfMultiLabelWeightVector* w) {
+
+    int num_labels = w->NumLabels();
 
     // compute the score of each label
     float max_score = 0;
@@ -744,10 +740,10 @@ namespace sofia_ml {
   }
 
   bool SinglePassiveAggressiveMultiLabelStep(const SfSparseVector& x,
-           float lambda,
            float max_step,
-           int num_labels,
            SfMultiLabelWeightVector* w) {
+
+    int num_labels = w->NumLabels();
 
     // this learner learns how to rank labels
     // (relevant labels should be ranked higher than irrelevant labels)
