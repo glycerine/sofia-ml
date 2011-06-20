@@ -75,7 +75,8 @@ void CommandLine(int argc, char** argv) {
 	  string("pegasos"));
   AddFlag("--loop_type",
 	  "Type of loop to use for training, controlling how examples are selected.\n"
-	  "    Options are: stochastic, balanced-stochastic, "
+	  "    Options are: stochastic, balanced-stochastic, multiple-passes, "
+    "stochastic-multi-label, multiple-passes-multi-label, ",
 	  "roc, rank, query-norm-rank, combined-ranking, "
 	  "combined-roc\n"
 	  "    Default: stochastic",
@@ -359,7 +360,9 @@ void MultiLabelPredictions(SfDataSet& test_data, SfMultiLabelWeightVector* w) {
     clock_t predict_start = clock();
 
     for (int i=0; i < test_data.NumExamples(); ++i) {
-      predictions.push_back(w->InnerProductAll(test_data.VectorAt(i)));
+      vector<float> predictions_i(w->NumLabels());
+      w->InnerProductAll(test_data.VectorAt(i), &predictions_i);
+      predictions.push_back(predictions_i);
     }
 
     PrintElapsedTime(predict_start, "Time to make test prediction results: ");

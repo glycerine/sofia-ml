@@ -74,19 +74,16 @@ float SfMultiLabelWeightVector::InnerProduct(const SfSparseVector& x,
 }
 
 float SfMultiLabelWeightVector::InnerProductLabel(const SfSparseVector& x,
-            int label_id,
+				    int label_id,
 				    float x_scale) const {
   return vectors_[label_id].InnerProduct(x, x_scale);
 }
 
-vector<float> SfMultiLabelWeightVector::InnerProductAll(const SfSparseVector& x,
-                              float x_scale) const {
-  vector<float> res(vectors_.size());
-
-  for (unsigned int i=0; i < vectors_.size(); i++)
-    res[i] = vectors_[i].InnerProduct(x, x_scale);
-
-  return res;
+void SfMultiLabelWeightVector::InnerProductAll(const SfSparseVector& x,
+				    vector<float>* out,
+				    float x_scale) const {
+  for (unsigned int i=0; i < out->size(); i++)
+    (*out)[i] = vectors_[i].InnerProduct(x, x_scale);
 }
 
 float SfMultiLabelWeightVector::InnerProductOnDifference(const SfSparseVector& a,

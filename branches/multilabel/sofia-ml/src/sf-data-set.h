@@ -47,11 +47,13 @@ class SfDataSet {
   // Number of total examples in data set.
   long int NumExamples() const { return vectors_.size(); }
 
-  // Return the maximum value taken by labels, i.e. the label set cardinality
-  // in the classification case
+  // Return the maximum value taken by labels.
+  // This value is especially useful in the classification case as it
+  // corresponds to the label set cardinality. In the regression case,
+  // it is simply the maximum value.
   float MaxY() const;
 
-  // Return the maximum dimension found in the dataset
+  // Return the maximum dimension found in the dataset.
   int MaxDimensions() const;
 
   // Returns a reference to the specified vector.

@@ -67,7 +67,8 @@ int main (int argc, char** argv) {
   assert(w_copy.ValueOf(4) == 2.0);
   assert(w_copy.GetSquaredNorm() == 40.0);
 
-  vector<float>inner_all = w_copy.InnerProductAll(x);
+  vector<float> inner_all(w_copy.NumLabels());
+  w_copy.InnerProductAll(x, &inner_all);
   assert(inner_all.size() == 2);
   assert(inner_all[0] == w_copy.InnerProductLabel(x, 0));
   assert(inner_all[1] == w_copy.InnerProductLabel(x, 1));

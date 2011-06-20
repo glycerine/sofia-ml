@@ -258,6 +258,8 @@ namespace sofia_ml {
 			float lambda,
 			SfWeightVector* w);
 
+  // Takes a single SGD multiclass SVM step, including regularization.
+  // Returns true iff the example x was violating KKT conditions.
   bool SingleSgdSvmMultiLabelStep(const SfSparseVector& x,
                                   float eta,
                                   float lambda,

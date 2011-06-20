@@ -67,7 +67,7 @@ namespace sofia_ml {
 
   template <class T>
   void Softmax(vector<T>& scores) {
-    // compute the softmax function taking care of underflows
+    // Compute the softmax function taking care of underflows.
     T sum = 0;
     T max_score = 0;
     unsigned int i;
@@ -78,6 +78,7 @@ namespace sofia_ml {
 
     for (i = 0; i < scores.size(); ++i) {
       scores[i] = scores[i] - max_score;
+      // Set score to 0 when less than e^-10.
       if (scores[i] < -10) scores[i] = 0;
       else scores[i] = expf(scores[i]);
       sum += scores[i];
@@ -105,7 +106,7 @@ namespace sofia_ml {
     MarginLabels res;
 
     res.min_relevant_score = FLT_MAX;
-    res.max_irrelevant_score = FLT_MIN;
+    res.max_irrelevant_score = -FLT_MAX;
     res.min_relevant_label = 0;
     res.max_irrelevant_label = 0;
     float score;
@@ -115,20 +116,20 @@ namespace sofia_ml {
     // the lowest scoring label among relevant labels
     // and the highest scoring label among the irrelevant
     // labels. However, it assumes that the labels returned by
-    // GetYVector are sorted.
+    // GetYVector() are sorted by id.
     unsigned int j = 0;
     for (int i = 0; i < num_labels; ++i) {
       score = w->InnerProductLabel(x, i);
-      if (j < labels.size() && labels[j] - 1 == i) { // labels start at 1
-        // the currently considered label is relevant
+      if (j < labels.size() && labels[j] - 1 == i) { // Labels start at 1.
+        // The currently considered label is relevant.
         if (score < res.min_relevant_score) {
           res.min_relevant_score = score;
           res.min_relevant_label = i;
         }
-        ++j; // move to the next relevant label
+        ++j; // Move to the next relevant label.
       }
       else {
-        // the currently considered label is irrelevant
+        // The currently considered label is irrelevant.
         if (score > res.max_irrelevant_score) {
           res.max_irrelevant_score = score;
           res.max_irrelevant_label = i;
@@ -243,13 +244,13 @@ namespace sofia_ml {
                              int num_passes,
                              SfWeightVector* w) {
 
-    // create a vector of example indices
+    // Create a vector of example indices...
     vector<long int>indices(training_set.NumExamples());
 
     for (int i=0; i < training_set.NumExamples(); i++)
       indices[i] = i;
 
-    // and shuffle it
+    // ...and shuffle it.
     ShuffleVector(indices);
 
     for (int t=0, i = 0; i < num_passes; ++i) {
@@ -270,13 +271,13 @@ namespace sofia_ml {
 			   int num_passes,
 			   SfMultiLabelWeightVector* w) {
 
-    // create a vector of example indices
+    // Create a vector of example indices...
     vector<long int>indices(training_set.NumExamples());
 
     for (int i=0; i < training_set.NumExamples(); i++)
       indices[i] = i;
 
-    // and shuffle it
+    // ...and shuffle it.
     ShuffleVector(indices);
 
     for (int t=0, i = 0; i < num_passes; ++i) {
@@ -704,7 +705,7 @@ namespace sofia_ml {
 
     int num_labels = w->NumLabels();
 
-    // relevant labels (irrelevant labels are those which are not in this vector)
+    // Relevant labels (irrelevant labels are those which are not in this vector).
     const vector<float>& labels = x.GetYVector();
 
     MarginLabels res = ComputeMarginLabels(x, w, labels, num_labels);
@@ -762,7 +763,7 @@ namespace sofia_ml {
 
     int num_labels = w->NumLabels();
 
-    // compute the score of each label
+    // Compute the score of each label.
     vector<float> scores(num_labels);
 
     for (int i = 0; i < num_labels; ++i) {
@@ -771,17 +772,17 @@ namespace sofia_ml {
 
     Softmax(scores);
 
-    // relevant labels (irrelevant labels are those which are not in this vector)
+    // Relevant labels (irrelevant labels are those which are not in this vector).
     const vector<float>& labels = x.GetYVector();
 
-    // add relevant labels
+    // Add relevant labels.
     for (unsigned int i = 0; i < labels.size(); ++i) {
-      w->SelectLabel(labels[i] - 1); // labels start at 1
+      w->SelectLabel(labels[i] - 1); // Labels start at 1.
       w->AddVector(x, eta);
     }
 
-    // substract all labels weighted by their probability
-    // (label expectation)
+    // Substract all labels weighted by their probability
+    // (label expectation).
     for (int i = 0; i < num_labels; ++i) {
       w->SelectLabel(i);
       w->AddVector(x, -eta * scores[i]);
@@ -824,17 +825,17 @@ namespace sofia_ml {
            float max_step,
            SfMultiLabelWeightVector* w) {
 
+    // This learner learns how to rank labels
+    // (relevant labels should be ranked higher than irrelevant labels).
     int num_labels = w->NumLabels();
 
-    // this learner learns how to rank labels
-    // (relevant labels should be ranked higher than irrelevant labels)
 
-    // relevant labels (irrelevant labels are those which are not in this vector)
+    // Relevant labels (irrelevant labels are those which are not in this vector).
     const vector<float>& labels = x.GetYVector();
 
     MarginLabels res = ComputeMarginLabels(x, w, labels, num_labels);
 
-    // the multi-label margin is an extension of the binary margin
+    // The multi-label margin is an extension of the binary margin
     // and is defined as the difference between the least confident
     // relevant label and the most confident irrelevant label.
     float margin = res.min_relevant_score - res.max_irrelevant_score;

@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
+#include <float.h>
 
 #include "sf-data-set.h"
 
@@ -66,9 +67,9 @@ string SfDataSet::AsString() const {
 }
 
 float SfDataSet::MaxY() const {
-  float max = 0;
+  float max = -FLT_MAX;
   for (unsigned int i = 0; i < vectors_.size(); ++i) {
-    // assume the labels are sorted
+    // Assume the labels are sorted.
     float y = vectors_[i].GetYVector().back();
     if (y > max) max = y;
   }
@@ -78,7 +79,7 @@ float SfDataSet::MaxY() const {
 int SfDataSet::MaxDimensions() const {
   int max = 0;
   for (unsigned int i = 0; i < vectors_.size(); ++i) {
-    // assume the labels are sorted
+    // Assume the features are sorted.
     const SfSparseVector& v = vectors_[i];
     int feat = v.FeatureAt(v.NumFeatures() - 1);
     if (feat > max) max = feat;

@@ -114,6 +114,10 @@ int main (int argc, char** argv) {
   assert(y_vector[1] == 3.0);
   assert(y_vector[2] == 4.0);
   assert(x9.AsString() == "1,3,4 0:0 2:2.5 4:-2 ");
+  x9.SetY(5, 2);
+  assert(x9.GetY(2) == 5);
+  x9.SetY(2);
+  assert(x9.GetY() == 2);
 
   std::cout << argv[0] << ": PASS" << std::endl;
 }
