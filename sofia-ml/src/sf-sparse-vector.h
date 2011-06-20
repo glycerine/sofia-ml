@@ -82,11 +82,11 @@ class SfSparseVector {
   inline float ValueAt(int i) const { return features_[i].value_; }
 
   // Getters and setters.
-  void SetY(float new_y) { if(y_.size() >= 1) y_[0] = new_y; else y_.push_back(new_y); }
+  void SetY(float new_y, unsigned int label_id = 0);
   void SetA(float new_a) { a_ = new_a; }
   void SetGroupId(const string& new_id) { group_id_ = new_id; }
   void SetComment(const string& new_comment) { comment_ = new_comment; }
-  float GetY() const { return y_[0]; }
+  float GetY(unsigned int label_id = 0) const;
   const vector<float>& GetYVector() const { return y_; }
   float GetA() const { return a_; }
   float GetSquaredNorm() const { return squared_norm_; }

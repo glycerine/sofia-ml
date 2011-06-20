@@ -42,25 +42,28 @@ class SfMultiLabelWeightVector : public SfWeightVector {
   // Frees the array of weights.
   virtual ~SfMultiLabelWeightVector();
 
-  // Label selector
+  // Select label to use when computing an inner product with
+  // InnerProduct().
   void SelectLabel(int label_id) { selected_vector_ = label_id; }
 
   // Re-scales weight vector to scale of 1, and then outputs each weight in
   // order, space separated.
   virtual string AsString();
 
-  // Computes inner product of <x_scale * x, w>
+  // Computes inner product of <x_scale * x, w>, where w is the weight vector of
+  // the currently selected label.
   virtual float InnerProduct(const SfSparseVector& x,
 			     float x_scale = 1.0) const;
 
   // Computes inner product with a specified label vector.
   virtual float InnerProductLabel(const SfSparseVector& x,
-           int label_id,
+			     int label_id,
 			     float x_scale = 1.0) const;
 
-  // Computes the inner products with all (internal) weight vectors
-  vector<float> InnerProductAll(const SfSparseVector& x,
-                                float x_scale=1.0) const;
+  // Computes the inner products with all (internal) weight vectors.
+  void InnerProductAll(const SfSparseVector& x,
+			     vector<float>* out,
+			     float x_scale=1.0) const;
 
   // Computes inner product of <x_scale * (a - b), w>
   virtual float InnerProductOnDifference(const SfSparseVector& a,
@@ -91,7 +94,7 @@ class SfMultiLabelWeightVector : public SfWeightVector {
  private:
   int num_labels_;
   int selected_vector_;
-  vector<SfWeightVector>vectors_;
+  vector<SfWeightVector> vectors_;
 };
 
 #endif  // SF_MULTI_LABEL_WEIGHT_VECTOR_H__

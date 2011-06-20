@@ -193,3 +193,23 @@ void SfSparseVector::Init(const char* in_string) {
     comment_ = string(position + 1);
   }
 }
+
+void SfSparseVector::SetY(float new_y, unsigned int label_id) {
+  if (y_.size() >= 1) {
+    if (label_id >= y_.size()) {
+      std::cerr << "label_id is larger than label set size in SetY()!" << std::endl;
+      exit(1);
+    }
+    y_[label_id] = new_y;
+  }
+  else
+    y_.push_back(new_y);
+}
+
+float SfSparseVector::GetY(unsigned int label_id) const {
+    if (label_id >= y_.size()) {
+      std::cerr << "label_id is larger than label set size in GetY()!" << std::endl;
+      exit(1);
+    }
+  return y_[label_id];
+}

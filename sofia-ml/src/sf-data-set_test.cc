@@ -21,7 +21,7 @@
 int main (int argc, char** argv) {
   // Load a data set from a file, using a bias term.
   SfDataSet data_set(string("sf-data-set_test.dat"), 5, true);
-  assert(data_set.NumExamples() == 2);
+  assert(data_set.NumExamples() == 3);
   assert(data_set.VectorAt(0).GetY() == 1);
   assert(data_set.VectorAt(0).FeatureAt(0) == 0);
   assert(data_set.VectorAt(0).ValueAt(0) == 1);
@@ -29,13 +29,13 @@ int main (int argc, char** argv) {
 
   // Load a data set from a file, using a bias term.
   SfDataSet data_set2(string("sf-data-set_test.dat"), 5, false);
-  assert(data_set2.NumExamples() == 2);
+  assert(data_set2.NumExamples() == 3);
   assert(data_set2.VectorAt(0).GetY() == 1);
   assert(data_set2.VectorAt(0).FeatureAt(0) == 0);
   assert(data_set2.VectorAt(0).ValueAt(0) == 0);
   assert(data_set2.VectorAt(1).GetY() == -1);
 
-  assert(data_set2.MaxY() == 1);
+  assert(data_set2.MaxY() == 2);
   assert(data_set2.MaxDimensions() == 4);
 
   std::cout << argv[0] << ": PASS" << std::endl;
