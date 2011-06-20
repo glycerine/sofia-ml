@@ -76,7 +76,7 @@ void CommandLine(int argc, char** argv) {
   AddFlag("--loop_type",
 	  "Type of loop to use for training, controlling how examples are selected.\n"
 	  "    Options are: stochastic, balanced-stochastic, multiple-passes, "
-    "stochastic-multi-label, multiple-passes-multi-label, ",
+    "stochastic-multi-label, multiple-passes-multi-label, "
 	  "roc, rank, query-norm-rank, combined-ranking, "
 	  "combined-roc\n"
 	  "    Default: stochastic",
