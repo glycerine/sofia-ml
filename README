@@ -1,6 +1,6 @@
 sofia-ml
 
-Project homepage: http://code.google.com/p/sofia-ml/
+Project homepage: https://github.com/glycerine/sofia-ml
 
 ==Introduction==
 
@@ -28,7 +28,7 @@ These quick-start instructions assume the use of the unix/linux commandline, wit
 
 Step 1 Check out the code:
 
-> svn checkout http://sofia-ml.googlecode.com/svn/trunk/sofia-ml sofia-ml-read-only
+> git clone https://github.com/glycerine/sofia-ml.git sofia-ml-read-only
 
 Step 2 Compile the code:
 
