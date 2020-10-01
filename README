@@ -41,7 +41,7 @@ Step 2 Compile the code:
 > make clean
 > make all_test
 
-Step 3 Test the code:
+Step 3 Run the code:
 
 > cd ..
 > ./sofia-ml
